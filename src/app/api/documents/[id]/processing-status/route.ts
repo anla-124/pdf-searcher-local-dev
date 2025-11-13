@@ -90,7 +90,7 @@ function getProcessingPhase(documentStatus: string, message: string): string {
     if (message.includes('embedding') || message.includes('generating')) {
       return 'embeddings'
     }
-    if (message.includes('index') || message.includes('Pinecone')) {
+    if (message.includes('index') || message.includes('Qdrant')) {
       return 'indexing'
     }
     // Default to extraction if no specific phase detected
@@ -106,7 +106,7 @@ function getProcessingPhase(documentStatus: string, message: string): string {
     if (message.includes('upload') || message.includes('storage')) return 'upload'
     if (message.includes('Document AI') || message.includes('processing')) return 'extraction'
     if (message.includes('embedding')) return 'embeddings'
-    if (message.includes('Pinecone') || message.includes('index')) return 'indexing'
+    if (message.includes('Qdrant') || message.includes('index')) return 'indexing'
     return 'extraction' // Default error phase
   }
   

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { poolHealthCheck, getPoolMetrics, getPoolConfig } from '@/lib/supabase/server'
 import { throttling } from '@/lib/concurrency-limiter'
-import { getPineconeCleanupMetrics } from '@/lib/pinecone-cleanup-worker'
+import { getQdrantCleanupMetrics } from '@/lib/qdrant-cleanup-worker'
 import { logger } from '@/lib/logger'
 
 export async function GET(_request: NextRequest) {
@@ -10,7 +10,7 @@ export async function GET(_request: NextRequest) {
     const metrics = getPoolMetrics()
     const config = getPoolConfig()
     const throttlingMetrics = throttling.getMetrics()
-    const pineconeMetrics = getPineconeCleanupMetrics()
+    const qdrantMetrics = getQdrantCleanupMetrics()
 
     const maxConnections = config.unlimitedMode ? Number.POSITIVE_INFINITY : config.maxConnections
     const utilization =
@@ -38,7 +38,7 @@ export async function GET(_request: NextRequest) {
         },
       },
       throttling: throttlingMetrics,
-      pineconeCleanup: pineconeMetrics,
+      qdrantCleanup: qdrantMetrics,
     }, {
       status: healthCheck.healthy ? 200 : 503,
       headers: {

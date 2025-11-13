@@ -1,4 +1,4 @@
-import { deleteDocumentFromPinecone } from '@/lib/pinecone'
+import { deleteDocumentFromQdrant } from '@/lib/qdrant'
 import { logger } from '@/lib/logger'
 
 type CleanupTask = {
@@ -28,8 +28,8 @@ const parseEnvInt = (key: string, fallback: number) => {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
 }
 
-const maxRetries = parseEnvInt('PINECONE_DELETE_MAX_RETRIES', DEFAULT_MAX_RETRIES)
-const baseBackoffMs = parseEnvInt('PINECONE_DELETE_BACKOFF_MS', DEFAULT_BACKOFF_MS)
+const maxRetries = parseEnvInt('QDRANT_DELETE_MAX_RETRIES', DEFAULT_MAX_RETRIES)
+const baseBackoffMs = parseEnvInt('QDRANT_DELETE_BACKOFF_MS', DEFAULT_BACKOFF_MS)
 
 const queue: CleanupTask[] = []
 const pendingTasks = new Map<string, CleanupTask>()
@@ -70,12 +70,12 @@ const handleTask = async (task: CleanupTask) => {
   try {
     const hasPrefetchedIds = Array.isArray(task.vectorIds) && task.vectorIds.length > 0
     if (hasPrefetchedIds) {
-      await deleteDocumentFromPinecone(task.documentId, task.vectorIds)
+      await deleteDocumentFromQdrant(task.documentId, task.vectorIds)
     } else {
-      await deleteDocumentFromPinecone(task.documentId)
+      await deleteDocumentFromQdrant(task.documentId)
     }
     pendingTasks.delete(task.documentId)
-    logger.info('Pinecone cleanup completed', {
+    logger.info('Qdrant cleanup completed', {
       documentId: task.documentId,
       attempts: task.attempt + 1,
       vectorIdsProvided: hasPrefetchedIds ? task.vectorIds?.length : 0,
@@ -98,7 +98,7 @@ const handleTask = async (task: CleanupTask) => {
         failureHistory.shift()
       }
       logger.error(
-        'Pinecone cleanup failed after maximum retries',
+        'Qdrant cleanup failed after maximum retries',
         undefined,
         {
           documentId: task.documentId,
@@ -114,7 +114,7 @@ const handleTask = async (task: CleanupTask) => {
       MAX_BACKOFF_MS,
     )
 
-    logger.warn('Pinecone cleanup scheduled for retry', {
+    logger.warn('Qdrant cleanup scheduled for retry', {
       documentId: task.documentId,
       attempts: task.attempt,
       retryInMs: delayMs,
@@ -128,7 +128,7 @@ const handleTask = async (task: CleanupTask) => {
   }
 }
 
-export const queuePineconeDeletion = (documentId: string, vectorIds?: string[]) => {
+export const queueQdrantDeletion = (documentId: string, vectorIds?: string[]) => {
   if (!documentId) {
     return
   }
@@ -155,7 +155,7 @@ export const queuePineconeDeletion = (documentId: string, vectorIds?: string[]) 
   scheduleProcessing()
 }
 
-export const getPineconeCleanupMetrics = () => {
+export const getQdrantCleanupMetrics = () => {
   return {
     queueDepth: queue.length,
     pendingDocuments: pendingTasks.size,

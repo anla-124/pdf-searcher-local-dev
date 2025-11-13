@@ -73,7 +73,7 @@ export class SmartRetry {
                includes('rate'))
       }
     },
-    pinecone: {
+    qdrant: {
       maxAttempts: 4,
       baseDelay: 1500,
       maxDelay: 45000,
@@ -106,9 +106,9 @@ export class SmartRetry {
     return this.execute(operation, this.enterpriseConfigs.vertexAI)
   }
 
-  static async executeWithPinecone<T>(operation: () => Promise<T>): Promise<RetryResult<T>> {
-    logger.info('Using enterprise Pinecone retry configuration')
-    return this.execute(operation, this.enterpriseConfigs.pinecone)
+  static async executeWithQdrant<T>(operation: () => Promise<T>): Promise<RetryResult<T>> {
+    logger.info('Using enterprise Qdrant retry configuration')
+    return this.execute(operation, this.enterpriseConfigs.qdrant)
   }
 
   static async executeWithDocumentAI<T>(operation: () => Promise<T>): Promise<RetryResult<T>> {
@@ -221,8 +221,8 @@ export const RetryConfigs = {
     }
   },
 
-  // Pinecone indexing - handle vector database issues
-  pineconeIndexing: {
+  // Qdrant indexing - handle vector database issues
+  qdrantIndexing: {
     maxAttempts: 3,
     baseDelay: 1500,
     maxDelay: 20000,
@@ -237,7 +237,7 @@ export const RetryConfigs = {
       return false
     },
     onRetry: (attempt: number, error: RetryableError) => {
-      logger.warn('Pinecone indexing retry', { attempt, errorMessage: error.message })
+      logger.warn('Qdrant indexing retry', { attempt, errorMessage: error.message })
     }
   },
 
@@ -346,5 +346,5 @@ export class CircuitBreaker {
 export const circuitBreakers = {
   documentAI: new CircuitBreaker(3, 120000), // 2 minutes
   vertexAI: new CircuitBreaker(5, 60000), // 1 minute
-  pinecone: new CircuitBreaker(3, 90000), // 1.5 minutes
+  qdrant: new CircuitBreaker(3, 90000), // 1.5 minutes
 }

@@ -10,8 +10,8 @@ import { logger } from '@/lib/logger'
 
 type RawFilters = Record<string, unknown>
 
-const PINECONE_OPERATOR_IN = '$in'
-const PINECONE_OPERATOR_EQ = '$eq'
+const FILTER_OPERATOR_IN = '$in'
+const FILTER_OPERATOR_EQ = '$eq'
 const MAX_RESULT_LIMIT = 100
 
 const parsePositiveInteger = (value: string | undefined): number | undefined => {
@@ -41,7 +41,7 @@ function normalizeTopK(value: unknown): number | undefined {
   return undefined
 }
 
-function normalizeFilterEntry(value: unknown): { pinecone: unknown; client: unknown } | null {
+function normalizeFilterEntry(value: unknown): { vectorDb: unknown; client: unknown } | null {
   if (value === null || value === undefined) {
     return null
   }
@@ -63,14 +63,14 @@ function normalizeFilterEntry(value: unknown): { pinecone: unknown; client: unkn
 
     if (sanitized.length === 1) {
       return {
-        pinecone: sanitized[0],
+        vectorDb: sanitized[0],
         client: sanitized[0]
       }
     }
 
     return {
-      pinecone: {
-        [PINECONE_OPERATOR_IN]: sanitized
+      vectorDb: {
+        [FILTER_OPERATOR_IN]: sanitized
       },
       client: sanitized
     }
@@ -82,23 +82,23 @@ function normalizeFilterEntry(value: unknown): { pinecone: unknown; client: unkn
       return null
     }
     return {
-      pinecone: trimmed,
+      vectorDb: trimmed,
       client: trimmed
     }
   }
 
   return {
-    pinecone: value,
+    vectorDb: value,
     client: value
   }
 }
 
 function buildStage0Filters(rawFilters: RawFilters, userId: string): {
-  pineconeFilters: Record<string, unknown>
+  vectorFilters: Record<string, unknown>
   appliedFilters: Record<string, unknown>
 } {
-  const pineconeFilters: Record<string, unknown> = {
-    user_id: { [PINECONE_OPERATOR_EQ]: userId }
+  const vectorFilters: Record<string, unknown> = {
+    user_id: { [FILTER_OPERATOR_EQ]: userId }
   }
   const appliedFilters: Record<string, unknown> = {}
 
@@ -108,11 +108,11 @@ function buildStage0Filters(rawFilters: RawFilters, userId: string): {
     const normalized = normalizeFilterEntry(value)
     if (!normalized) continue
 
-    pineconeFilters[key] = normalized.pinecone
+    vectorFilters[key] = normalized.vectorDb
     appliedFilters[key] = normalized.client
   }
 
-  return { pineconeFilters, appliedFilters }
+  return { vectorFilters, appliedFilters }
 }
 
 interface SanitizedPageRangeResult {
@@ -238,7 +238,7 @@ export async function POST(
       target_min_score?: number
     } = body
 
-    // Extract non-Pinecone filter directives (handled in later stages)
+    // Extract non-vector-DB filter directives (handled in later stages)
     const {
       page_range: requestedPageRange,
       min_score: requestedMinScore,
@@ -247,7 +247,7 @@ export async function POST(
       ...metadataFilters
     } = rawFilters as RawFilters
 
-    const { pineconeFilters, appliedFilters } = buildStage0Filters(metadataFilters, user.id)
+    const { vectorFilters, appliedFilters } = buildStage0Filters(metadataFilters, user.id)
 
     const normalizedStage2Workers =
       stage2_parallelWorkers !== undefined
@@ -318,7 +318,7 @@ export async function POST(
     // Execute 3-stage similarity search
     const searchResult = await executeSimilaritySearch(id, {
       stage0_topK,
-      stage0_filters: pineconeFilters,
+      stage0_filters: vectorFilters,
       stage1_topK,
       stage1_enabled,
       stage1_neighborsPerChunk,

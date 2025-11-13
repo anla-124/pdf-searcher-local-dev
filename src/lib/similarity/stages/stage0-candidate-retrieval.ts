@@ -7,65 +7,65 @@
  */
 
 import { createServiceClient, releaseServiceClient } from '@/lib/supabase/server'
-import { getPineconeIndex } from '@/lib/pinecone'
+import { getQdrantClient, convertToQdrantFilter } from '@/lib/qdrant'
 import { logger } from '@/lib/logger'
 import { Stage0Result } from '../types'
 
-const PINECONE_OPERATOR_IN = '$in'
-const PINECONE_OPERATOR_EQ = '$eq'
-const PINECONE_OPERATOR_NE = '$ne'
+const FILTER_OPERATOR_IN = '$in'
+const FILTER_OPERATOR_EQ = '$eq'
+const FILTER_OPERATOR_NE = '$ne'
 
 function sanitizeDocumentIdFilter(
   existingFilter: unknown,
   sourceDocId: string
 ): Record<string, unknown> {
   if (existingFilter === undefined) {
-    return { [PINECONE_OPERATOR_NE]: sourceDocId }
+    return { [FILTER_OPERATOR_NE]: sourceDocId }
   }
 
   if (typeof existingFilter === 'string') {
     if (existingFilter === sourceDocId) {
-      return { [PINECONE_OPERATOR_IN]: [] }
+      return { [FILTER_OPERATOR_IN]: [] }
     }
-    return { [PINECONE_OPERATOR_IN]: [existingFilter] }
+    return { [FILTER_OPERATOR_IN]: [existingFilter] }
   }
 
   if (existingFilter && typeof existingFilter === 'object' && !Array.isArray(existingFilter)) {
     const filter = { ...(existingFilter as Record<string, unknown>) }
 
-    const rawIn = filter[PINECONE_OPERATOR_IN]
+    const rawIn = filter[FILTER_OPERATOR_IN]
     if (Array.isArray(rawIn)) {
       const allowed = rawIn.filter(
         (value): value is string => typeof value === 'string' && value !== sourceDocId
       )
-      filter[PINECONE_OPERATOR_IN] = allowed
+      filter[FILTER_OPERATOR_IN] = allowed
       if (allowed.length === 0) {
-        return { [PINECONE_OPERATOR_IN]: [] }
+        return { [FILTER_OPERATOR_IN]: [] }
       }
     }
 
-    const rawEq = filter[PINECONE_OPERATOR_EQ]
+    const rawEq = filter[FILTER_OPERATOR_EQ]
     if (typeof rawEq === 'string') {
       if (rawEq === sourceDocId) {
-        return { [PINECONE_OPERATOR_IN]: [] }
+        return { [FILTER_OPERATOR_IN]: [] }
       }
     }
 
     if (
-      filter[PINECONE_OPERATOR_IN] === undefined &&
-      filter[PINECONE_OPERATOR_EQ] === undefined &&
-      filter[PINECONE_OPERATOR_NE] === undefined
+      filter[FILTER_OPERATOR_IN] === undefined &&
+      filter[FILTER_OPERATOR_EQ] === undefined &&
+      filter[FILTER_OPERATOR_NE] === undefined
     ) {
-      filter[PINECONE_OPERATOR_NE] = sourceDocId
-    } else if (filter[PINECONE_OPERATOR_IN] === undefined && filter[PINECONE_OPERATOR_EQ] === undefined) {
+      filter[FILTER_OPERATOR_NE] = sourceDocId
+    } else if (filter[FILTER_OPERATOR_IN] === undefined && filter[FILTER_OPERATOR_EQ] === undefined) {
       // Ensure source document is excluded even when other constraints exist
-      filter[PINECONE_OPERATOR_NE] = sourceDocId
+      filter[FILTER_OPERATOR_NE] = sourceDocId
     }
 
     return filter
   }
 
-  return { [PINECONE_OPERATOR_NE]: sourceDocId }
+  return { [FILTER_OPERATOR_NE]: sourceDocId }
 }
 
 /**
@@ -124,23 +124,23 @@ export async function stage0CandidateRetrieval(
       )
     }
 
-    // 2. Query Pinecone with source centroid
-    // Use document-level index for centroids (or query chunk index with filter)
-    // For now, we'll use a dummy approach - in production, create separate centroid index
-    logger.info('Stage 0: querying Pinecone with centroid', {
+    // 2. Query Qdrant with source centroid
+    logger.info('Stage 0: querying Qdrant with centroid', {
       sourceDocId,
       desiredTopK: topK
     })
 
-    // Build Pinecone filter
+    // Build Qdrant filter
     const existingDocumentIdFilter = Object.prototype.hasOwnProperty.call(filters, 'document_id')
       ? (filters as Record<string, unknown>)[ 'document_id' ]
       : undefined
 
-    const pineconeFilter: Record<string, unknown> = {
+    const searchFilter: Record<string, unknown> = {
       ...filters,
       document_id: sanitizeDocumentIdFilter(existingDocumentIdFilter, sourceDocId)
     }
+
+    const qdrantFilter = convertToQdrantFilter(searchFilter)
 
     // Parse centroid if stored as string in Supabase
     let centroidVector: unknown = overrideSourceVector ?? sourceDoc.centroid_embedding
@@ -160,10 +160,10 @@ export async function stage0CandidateRetrieval(
     }
 
     // Query using centroid
-    logger.debug('Stage 0: Pinecone query params', {
+    logger.debug('Stage 0: Qdrant query params', {
       vectorLength: centroidVector.length,
-      topK: topK * 2,
-      filter: pineconeFilter,
+      limit: topK * 2,
+      filter: qdrantFilter,
       ...(sourcePageRange
         ? {
             pageRange: {
@@ -174,31 +174,34 @@ export async function stage0CandidateRetrieval(
         : {})
     })
 
-    const queryResponse = await getPineconeIndex().query({
+    const client = getQdrantClient()
+    const collectionName = process.env['QDRANT_COLLECTION_NAME'] || 'documents'
+
+    const queryResponse = await client.search(collectionName, {
       vector: centroidVector,
-      topK: topK * 2,  // Get extra to account for deduplication
-      filter: pineconeFilter,
-      includeMetadata: true,
-      includeValues: false
+      limit: topK * 2,  // Get extra to account for deduplication
+      filter: qdrantFilter,
+      with_payload: true,
+      with_vector: false
     })
 
-    logger.debug('Stage 0: Pinecone response sample', {
-      matchesCount: queryResponse.matches?.length ?? 0,
-      sample: queryResponse.matches?.slice(0, 3).map(m => ({
+    logger.debug('Stage 0: Qdrant response sample', {
+      matchesCount: queryResponse.length,
+      sample: queryResponse.slice(0, 3).map(m => ({
         id: m.id,
         score: m.score,
-        documentId: (m.metadata as { document_id?: string } | undefined)?.document_id
+        documentId: (m.payload as { document_id?: string } | undefined)?.document_id
       }))
     })
 
     // 3. Extract and deduplicate document IDs
     const candidateMap = new Map<string, number>()  // doc_id -> best_score
 
-    for (const match of queryResponse.matches ?? []) {
-      const metadata = match.metadata as { document_id?: string } | undefined
-      if (!metadata?.document_id) continue
+    for (const match of queryResponse) {
+      const payload = match.payload as { document_id?: string } | undefined
+      if (!payload?.document_id) continue
 
-      const docId = metadata.document_id
+      const docId = payload.document_id
       const score = match.score || 0
 
       // Keep highest score if document appears multiple times
@@ -215,19 +218,20 @@ export async function stage0CandidateRetrieval(
     const candidateIds = candidates.map(c => c[0])
     const scores = candidates.map(c => c[1])
 
-    if (candidateIds.length === 0 && 'user_id' in pineconeFilter) {
-      const { user_id: _userFilter, ...fallbackFilter } = pineconeFilter
+    if (candidateIds.length === 0 && 'user_id' in searchFilter) {
+      const { user_id: _userFilter, ...fallbackFilter } = searchFilter
+      const fallbackQdrantFilter = convertToQdrantFilter(fallbackFilter)
 
       try {
-        const fallbackResponse = await getPineconeIndex().query({
+        const fallbackResponse = await client.search(collectionName, {
           vector: centroidVector,
-          topK: topK * 2,
-          filter: fallbackFilter as Record<string, unknown>,
-          includeMetadata: true,
-          includeValues: false
+          limit: topK * 2,
+          filter: fallbackQdrantFilter,
+          with_payload: true,
+          with_vector: false
         })
 
-        const fallbackMatches = (fallbackResponse.matches ?? []).length
+        const fallbackMatches = fallbackResponse.length
         if (fallbackMatches > 0) {
           logger.warn('Stage 0: user_id filter eliminated all candidates', {
             sourceDocId,

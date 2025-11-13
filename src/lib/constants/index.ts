@@ -100,14 +100,14 @@ export const DELETE_GLOBAL_LIMIT = 2
 export const DELETE_PER_USER_LIMIT = 2
 
 // =============================================================================
-// PINECONE CONFIGURATION
+// QDRANT CONFIGURATION
 // =============================================================================
 
-/** Maximum retries for Pinecone delete operations */
-export const PINECONE_DELETE_MAX_RETRIES = 3
+/** Maximum retries for Qdrant delete operations */
+export const QDRANT_DELETE_MAX_RETRIES = 3
 
-/** Backoff time between Pinecone delete retries */
-export const PINECONE_DELETE_BACKOFF_MS = 2000
+/** Backoff time between Qdrant delete retries */
+export const QDRANT_DELETE_BACKOFF_MS = 2000
 
 // =============================================================================
 // SIMILARITY SEARCH
@@ -199,7 +199,7 @@ export const ERROR_CODES = {
   // External Services
   EXTERNAL_SERVICE_ERROR: 'EXTERNAL_SERVICE_ERROR',
   DRAFTABLE_ERROR: 'DRAFTABLE_ERROR',
-  PINECONE_ERROR: 'PINECONE_ERROR',
+  QDRANT_ERROR: 'QDRANT_ERROR',
   GOOGLE_CLOUD_ERROR: 'GOOGLE_CLOUD_ERROR',
 
   // Timeouts

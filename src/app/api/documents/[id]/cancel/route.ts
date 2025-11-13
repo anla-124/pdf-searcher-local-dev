@@ -98,7 +98,7 @@ export async function POST(
 
     try {
       // Trigger COMPLETE cleanup - removes ALL data from EVERYWHERE
-      // This includes: Supabase embeddings, Pinecone vectors, storage files,
+      // This includes: Supabase embeddings, Qdrant vectors, storage files,
       // document content, extracted fields, processing status, and the document itself
       await cleanupCancelledDocument(documentId)
 

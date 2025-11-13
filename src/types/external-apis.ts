@@ -1,6 +1,6 @@
 /**
  * Comprehensive type definitions for external APIs
- * Enterprise-grade type safety for Google Document AI, Pinecone, Vertex AI, and Supabase
+ * Enterprise-grade type safety for Google Document AI, Qdrant, Vertex AI, and Supabase
  */
 
 // =============================================================================
@@ -567,89 +567,6 @@ export interface DocumentAIBatchProcessResponse {
   }
   name?: string
   done?: boolean
-}
-
-// =============================================================================
-// PINECONE TYPES
-// =============================================================================
-
-export interface PineconeVector {
-  id: string
-  values: number[]
-  sparseValues?: {
-    indices: number[]
-    values: number[]
-  }
-  metadata?: Record<string, string | number | boolean | string[]>
-}
-
-export interface PineconeQueryMatch {
-  id: string
-  score: number
-  values?: number[]
-  sparseValues?: {
-    indices: number[]
-    values: number[]
-  }
-  metadata?: Record<string, string | number | boolean | string[]>
-}
-
-export interface PineconeQueryRequest {
-  vector?: number[]
-  sparseVector?: {
-    indices: number[]
-    values: number[]
-  }
-  topK: number
-  filter?: Record<string, unknown>
-  includeValues?: boolean
-  includeMetadata?: boolean
-  namespace?: string
-  id?: string
-}
-
-export interface PineconeQueryResponse {
-  matches: PineconeQueryMatch[]
-  namespace?: string
-  usage?: {
-    readUnits?: number
-  }
-}
-
-export interface PineconeUpsertRequest {
-  vectors: PineconeVector[]
-  namespace?: string
-}
-
-export interface PineconeUpsertResponse {
-  upsertedCount: number
-}
-
-export interface PineconeDeleteRequest {
-  ids?: string[]
-  deleteAll?: boolean
-  namespace?: string
-  filter?: Record<string, unknown>
-}
-
-export interface PineconeUpdateRequest {
-  id: string
-  values?: number[]
-  sparseValues?: {
-    indices: number[]
-    values: number[]
-  }
-  setMetadata?: Record<string, string | number | boolean | string[]>
-  namespace?: string
-}
-
-export interface PineconeDescribeIndexStatsResponse {
-  namespaces?: Record<string, {
-    vectorCount?: number
-  }>
-  dimension?: number
-  indexFullness?: number
-  totalVectorCount?: number
 }
 
 // =============================================================================

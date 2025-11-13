@@ -434,7 +434,7 @@ export interface RateLimitError extends ApiError {
 
 export interface ExternalServiceError extends ApiError {
   category: 'external_service'
-  code: 'EXTERNAL_SERVICE_ERROR' | 'DOCUMENT_AI_ERROR' | 'PINECONE_ERROR' | 'VERTEX_AI_ERROR' | 'STORAGE_ERROR'
+  code: 'EXTERNAL_SERVICE_ERROR' | 'DOCUMENT_AI_ERROR' | 'QDRANT_ERROR' | 'VERTEX_AI_ERROR' | 'STORAGE_ERROR'
   details: {
     service: string
     originalError: string

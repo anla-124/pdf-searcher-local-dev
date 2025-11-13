@@ -3,7 +3,7 @@ import { PDFDocument } from 'pdf-lib'
 import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient, releaseServiceClient } from '@/lib/supabase/server'
 import { generateEmbeddings } from '@/lib/embeddings-vertex'
-import { indexDocumentInPinecone, getVectorIdsForDocument } from '@/lib/pinecone'
+import { indexDocumentInQdrant, getVectorIdsForDocument } from '@/lib/qdrant'
 import { l2Normalize } from '@/lib/similarity/utils/vector-operations'
 import { detectOptimalProcessor, getProcessorId, getProcessorName } from '@/lib/document-ai-config'
 import { getGoogleClientOptions } from '@/lib/google-credentials'
@@ -16,7 +16,7 @@ import { chunkByParagraphs, countCharacters, type Paragraph } from '@/lib/chunki
 import { chunkBySentences } from '@/lib/chunking/sentence-chunker'
 import type { GenericSupabaseSchema } from '@/types/supabase'
 import { saveDocumentAIResponse } from '@/lib/debug-document-ai'
-import { queuePineconeDeletion } from '@/lib/pinecone-cleanup-worker'
+import { queueQdrantDeletion } from '@/lib/qdrant-cleanup-worker'
 
 // Processing pipeline fingerprint - increment when major changes are made
 const PROCESSING_PIPELINE_VERSION = '5.0.0'
@@ -145,7 +145,7 @@ async function checkCancellation(documentId: string): Promise<boolean> {
 
 /**
  * Clean up all partial data for a cancelled document
- * Removes data from: Supabase (embeddings, content, fields, status), Pinecone, Storage
+ * Removes data from: Supabase (embeddings, content, fields, status), Qdrant, Storage
  */
 export async function cleanupCancelledDocument(documentId: string): Promise<void> {
   logger.info('Starting cleanup of cancelled document', { documentId, component: 'document-processing' })
@@ -165,7 +165,7 @@ export async function cleanupCancelledDocument(documentId: string): Promise<void
       return
     }
 
-    // 2. Get vector IDs from Supabase BEFORE deleting embeddings (needed for Pinecone cleanup)
+    // 2. Get vector IDs from Supabase BEFORE deleting embeddings (needed for Qdrant cleanup)
     const { data: chunks } = await supabase
       .from('document_embeddings')
       .select('chunk_index')
@@ -175,27 +175,20 @@ export async function cleanupCancelledDocument(documentId: string): Promise<void
     const vectorIds = chunks?.map(chunk => `${documentId}_chunk_${chunk.chunk_index}`) || []
     logger.debug('Found vector IDs for cleanup', { documentId, vectorCount: vectorIds.length })
 
-    // 3. Delete vectors from Pinecone FIRST (using vector IDs we just retrieved)
-    // CRITICAL: Must delete from Pinecone before Supabase to prevent orphaned vectors
+    // 3. Delete vectors from Qdrant FIRST (using vector IDs we just retrieved)
+    // CRITICAL: Must delete from Qdrant before Supabase to prevent orphaned vectors
     if (vectorIds.length > 0) {
       try {
-        const { getPineconeIndex } = await import('@/lib/pinecone')
-        const index = getPineconeIndex()
-
-        // Delete in batches of 1000 (Pinecone limit)
-        for (let i = 0; i < vectorIds.length; i += 1000) {
-          const batch = vectorIds.slice(i, i + 1000)
-          await index.namespace('').deleteMany(batch)
-        }
-
-        logger.info('Deleted vectors from Pinecone', { documentId, vectorCount: vectorIds.length })
-      } catch (pineconeError) {
-        logger.error('Failed to delete Pinecone vectors during cleanup', pineconeError as Error, { documentId })
-        // Continue cleanup even if Pinecone fails
+        const { deleteDocumentFromQdrant } = await import('@/lib/qdrant')
+        await deleteDocumentFromQdrant(documentId, vectorIds)
+        logger.info('Deleted vectors from Qdrant', { documentId, vectorCount: vectorIds.length })
+      } catch (qdrantError) {
+        logger.error('Failed to delete Qdrant vectors during cleanup', qdrantError as Error, { documentId })
+        // Continue cleanup even if Qdrant fails
       }
     }
 
-    // 4. Delete all embeddings from Supabase AFTER Pinecone cleanup
+    // 4. Delete all embeddings from Supabase AFTER Qdrant cleanup
     const { error: embeddingsError } = await supabase
       .from('document_embeddings')
       .delete()
@@ -270,7 +263,7 @@ export async function cleanupCancelledDocument(documentId: string): Promise<void
     logger.info('Successfully cleaned up cancelled document - COMPLETELY REMOVED', {
       documentId,
       filename: document.filename,
-      cleanedUp: ['embeddings', 'pinecone', 'content', 'fields', 'status', 'jobs', 'storage', 'document']
+      cleanedUp: ['embeddings', 'qdrant', 'content', 'fields', 'status', 'jobs', 'storage', 'document']
     })
 
   } catch (error) {
@@ -965,7 +958,7 @@ async function processChunkWithRetry(
     const embedding = embeddingResult.result!
     logger.debug('Embeddings generated successfully', { chunkIndex: pagedChunk.chunkIndex, attempts: embeddingResult.attempts, component: 'document-processing' })
 
-    // CRITICAL: Check cancellation before saving - prevents orphaned embeddings in Pinecone
+    // CRITICAL: Check cancellation before saving - prevents orphaned embeddings in Qdrant
     if (await checkCancellation(documentId)) {
       logger.info('Document cancelled after embedding generation, skipping save', {
         documentId,
@@ -1025,12 +1018,12 @@ async function processChunkWithRetry(
       throw new Error(`Supabase storage failed: ${supabaseResult.error?.message}`)
     }
 
-    // Index in Pinecone with retry logic and circuit breaker
-    const pineconeResult = await executeWithCircuitBreaker(circuitBreakers.pinecone, async () => {
+    // Index in Qdrant with retry logic and circuit breaker
+    const qdrantResult = await executeWithCircuitBreaker(circuitBreakers.qdrant, async () => {
       return await SmartRetry.execute(
         async () => {
-          logger.debug('Indexing vector in Pinecone', { vectorId, component: 'document-processing' })
-          await indexDocumentInPinecone(
+          logger.debug('Indexing vector in Qdrant', { vectorId, component: 'document-processing' })
+          await indexDocumentInQdrant(
             vectorId,
             embedding,
             {
@@ -1048,16 +1041,16 @@ async function processChunkWithRetry(
           )
           return true
         },
-        RetryConfigs.pineconeIndexing
+        RetryConfigs.qdrantIndexing
       )
     })
 
-    if (!pineconeResult.success) {
-      logger.error('Failed to index vector in Pinecone', pineconeResult.error, { vectorId, component: 'document-processing' })
-      throw new Error(`Pinecone indexing failed: ${pineconeResult.error?.message}`)
+    if (!qdrantResult.success) {
+      logger.error('Failed to index vector in Qdrant', qdrantResult.error, { vectorId, component: 'document-processing' })
+      throw new Error(`Qdrant indexing failed: ${qdrantResult.error?.message}`)
     }
 
-    logger.debug('Vector indexed successfully in Pinecone', { vectorId, component: 'document-processing' })
+    logger.debug('Vector indexed successfully in Qdrant', { vectorId, component: 'document-processing' })
   } catch (error) {
     logger.error('Chunk processing failed', error as Error, { chunkIndex: pagedChunk.chunkIndex, component: 'document-processing' })
     throw error
@@ -1542,7 +1535,7 @@ async function processDocumentWithChunks(params: ChunkProcessingParams) {
 
 async function cleanupPartialEmbeddings(documentId: string) {
   const vectorIds = await getVectorIdsForDocument(documentId)
-  queuePineconeDeletion(documentId, vectorIds)
+  queueQdrantDeletion(documentId, vectorIds)
 
   const supabase = await createServiceClient()
   try {
@@ -1575,7 +1568,7 @@ export async function generateAndIndexEmbeddings(documentId: string, text: strin
   const supabase = await createServiceClient()
   
   try {
-    // Get document metadata for Pinecone indexing
+    // Get document metadata for Qdrant indexing
     const { data: docRecord, error: docError } = await supabase
       .from('documents')
       .select('metadata, user_id')
@@ -1617,8 +1610,8 @@ export async function generateAndIndexEmbeddings(documentId: string, text: strin
         throw new Error(`Supabase storage failed: ${supabaseError.message}`)
       }
       
-      // Index in Pinecone with business metadata
-      await indexDocumentInPinecone(
+      // Index in Qdrant with business metadata
+      await indexDocumentInQdrant(
         vectorId,
         embedding,
         {
@@ -2404,8 +2397,8 @@ async function generateEmbeddingsFromPages(
     component: 'document-processing'
   })
 
-  // Verify Pinecone indexing consistency
-  logger.info('Verifying Pinecone indexing consistency', {
+  // Verify Qdrant indexing consistency
+  logger.info('Verifying Qdrant indexing consistency', {
     documentId,
     expectedChunks: pagedChunks.length,
     component: 'document-processing'

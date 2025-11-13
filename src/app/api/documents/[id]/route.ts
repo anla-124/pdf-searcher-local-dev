@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { updateDocumentMetadataInPinecone, getVectorIdsForDocument } from '@/lib/pinecone'
+import { updateDocumentMetadataInQdrant, getVectorIdsForDocument } from '@/lib/qdrant'
 import { activityLogger } from '@/lib/activity-logger'
 import { DatabaseDocumentWithContent } from '@/types/external-apis'
 import { logger } from '@/lib/logger'
 import { throttling } from '@/lib/concurrency-limiter'
-import { queuePineconeDeletion } from '@/lib/pinecone-cleanup-worker'
+import { queueQdrantDeletion } from '@/lib/qdrant-cleanup-worker'
 
 export async function GET(
   request: NextRequest,
@@ -88,7 +88,7 @@ export async function DELETE(
       let vectorIds: string[] = []
       try {
         vectorIds = await getVectorIdsForDocument(id)
-        logger.debug('Documents API: prefetched Pinecone vector IDs for deletion', {
+        logger.debug('Documents API: prefetched Qdrant vector IDs for deletion', {
           documentId: id,
           vectorCount: vectorIds.length,
         })
@@ -112,9 +112,9 @@ export async function DELETE(
         logger.warn('Documents API: document missing file_path during deletion', { documentId: id })
       }
 
-      // Queue Pinecone cleanup with retry/backoff
-      queuePineconeDeletion(id, vectorIds)
-      logger.info('Documents API: queued Pinecone vector cleanup', { documentId: id })
+      // Queue Qdrant cleanup with retry/backoff
+      queueQdrantDeletion(id, vectorIds)
+      logger.info('Documents API: queued Qdrant vector cleanup', { documentId: id })
 
       // Delete from database (CASCADE will handle related records)
       const { error: deleteError } = await supabase
@@ -211,12 +211,18 @@ export async function PATCH(
       // 1. Construct new filename and file path
       const newFilename = `${title}.pdf`
       const oldFilepath = existingDocument.file_path
+
+      if (!oldFilepath || typeof oldFilepath !== 'string') {
+        logger.error('Documents API: missing or invalid file_path for rename', undefined, { documentId: id })
+        return NextResponse.json({ error: 'Document file path is missing' }, { status: 500 })
+      }
+
       const newFilepath = oldFilepath.substring(0, oldFilepath.lastIndexOf('/') + 1) + newFilename
-      
+
       // 2. Move the file in Supabase Storage
       const { error: moveError } = await supabase.storage
         .from('documents')
-        .move(existingDocument.file_path, newFilepath)
+        .move(oldFilepath, newFilepath)
 
       if (moveError) {
         logger.error('Documents API: storage file move error', moveError)
@@ -251,40 +257,40 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update document' }, { status: 500 })
     }
 
-    // Update Pinecone vector metadata if title or metadata changed
+    // Update Qdrant vector metadata if title or metadata changed
     if (title || metadata) {
       try {
-        const pineconeMetadata: Record<string, unknown> = {}
-        
+        const vectorMetadata: Record<string, unknown> = {}
+
         if (title) {
           // The new filename is derived from the new title
           const newFilename = `${title}.pdf`
-          pineconeMetadata.filename = newFilename
-          pineconeMetadata.original_filename = newFilename
-          logger.info('Documents API: preparing Pinecone metadata filename update', {
+          vectorMetadata.filename = newFilename
+          vectorMetadata.original_filename = newFilename
+          logger.info('Documents API: preparing Qdrant metadata filename update', {
             documentId: id,
             newFilename
           })
         }
-        
+
         // If business metadata changed, include those updates too
         if (metadata) {
-          if (metadata.law_firm) pineconeMetadata.law_firm = metadata.law_firm
-          if (metadata.fund_manager) pineconeMetadata.fund_manager = metadata.fund_manager
-          if (metadata.fund_admin) pineconeMetadata.fund_admin = metadata.fund_admin
-          if (metadata.jurisdiction) pineconeMetadata.jurisdiction = metadata.jurisdiction
-          logger.info('Documents API: updating Pinecone business metadata', { documentId: id })
+          if (metadata.law_firm) vectorMetadata.law_firm = metadata.law_firm
+          if (metadata.fund_manager) vectorMetadata.fund_manager = metadata.fund_manager
+          if (metadata.fund_admin) vectorMetadata.fund_admin = metadata.fund_admin
+          if (metadata.jurisdiction) vectorMetadata.jurisdiction = metadata.jurisdiction
+          logger.info('Documents API: updating Qdrant business metadata', { documentId: id })
         }
-        
-        await updateDocumentMetadataInPinecone(id, pineconeMetadata)
-        logger.info('Documents API: Pinecone metadata updated', { documentId: id })
-      } catch (pineconeError) {
+
+        await updateDocumentMetadataInQdrant(id, vectorMetadata)
+        logger.info('Documents API: Qdrant metadata updated', { documentId: id })
+      } catch (qdrantError) {
         logger.error(
-          'Documents API: Pinecone metadata update error (non-fatal)',
-          pineconeError instanceof Error ? pineconeError : new Error(String(pineconeError)),
+          'Documents API: Qdrant metadata update error (non-fatal)',
+          qdrantError instanceof Error ? qdrantError : new Error(String(qdrantError)),
           { documentId: id }
         )
-        // Don't fail the entire request if Pinecone update fails
+        // Don't fail the entire request if Qdrant update fails
         // The database update was successful, which is the primary concern
       }
     }

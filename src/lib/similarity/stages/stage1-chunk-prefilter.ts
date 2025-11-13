@@ -6,7 +6,7 @@
  * Purpose: Estimate coverage quickly, filter to small set for exact scoring
  */
 
-import { getPineconeIndex } from '@/lib/pinecone'
+import { getQdrantClient } from '@/lib/qdrant'
 import { logger } from '@/lib/logger'
 import { Chunk, Stage1Result } from '../types'
 
@@ -91,13 +91,16 @@ export async function stage1ChunkPrefilter(
         continue
       }
 
-      // Query each vector individually (Pinecone doesn't support true batch queries)
+      // Query each vector individually
+      const client = getQdrantClient()
+      const collectionName = process.env['QDRANT_COLLECTION_NAME'] || 'documents'
+
       const batchQueryPromises = chunkVectorPairs.map(({ vector }) =>
-        getPineconeIndex().query({
+        client.search(collectionName, {
           vector,
-          topK: neighborsPerChunk,
-          includeMetadata: true,
-          includeValues: false
+          limit: neighborsPerChunk,
+          with_payload: true,
+          with_vector: false
         })
       )
 
@@ -109,14 +112,14 @@ export async function stage1ChunkPrefilter(
         if (!pair) continue
         const { chunk: queryChunk } = pair
         const queryResult = batchResults[j]
-        const neighbors = queryResult?.matches || []
+        const neighbors = queryResult || []
 
         // NMS: Each query chunk contributes ≤1 match per candidate
         const seenCandidates = new Set<string>()
 
         for (const neighbor of neighbors) {
-          const metadata = neighbor.metadata as { document_id?: string } | undefined
-          const candidateDocId = metadata?.document_id
+          const payload = neighbor.payload as { document_id?: string } | undefined
+          const candidateDocId = payload?.document_id
           if (!candidateDocId) continue
 
           // ← CRITICAL: Only count Stage 0 candidates!

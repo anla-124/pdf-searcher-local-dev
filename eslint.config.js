@@ -28,6 +28,8 @@ export default [
       '*.config.ts',
       'public/**',
       'credentials/**',
+      'test-*.ts',
+      'init-*.ts',
     ],
   },
 

@@ -94,3 +94,6 @@ document-ai-debug/
 
 playwright-report/
 test-results/
+
+# Qdrant local storage (vector database data)
+qdrant_storage/
