@@ -43,7 +43,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto">
-          <div className="container mx-auto px-4 md:px-6 py-6 md:py-8">
+          <div className="w-full px-4 md:px-6 lg:px-8 pb-6 md:pb-8">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>

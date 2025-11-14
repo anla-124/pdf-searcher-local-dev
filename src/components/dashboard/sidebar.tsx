@@ -25,28 +25,9 @@ const navigation: NavigationItem[] = []
 
 export function Sidebar() {
   const [isLoading, setIsLoading] = useState(false)
-  const [isDark, setIsDark] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-
-  useEffect(() => {
-    // Check if dark mode is active
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    }
-
-    checkDarkMode()
-
-    // Watch for theme changes
-    const observer = new MutationObserver(checkDarkMode)
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    })
-
-    return () => observer.disconnect()
-  }, [])
 
   const handleLogout = async () => {
     setIsLoading(true)
@@ -62,9 +43,7 @@ export function Sidebar() {
 
   return (
     <div
-      className={`flex h-full w-64 flex-col border-r border-gray-200 dark:border-slate-700/50 sidebar-enhanced backdrop-blur-xl transition-colors duration-300 ${
-        isDark ? 'bg-[#0a1329]' : 'bg-white'
-      }`}
+      className="flex h-full w-64 flex-col border-r border-gray-200 dark:border-slate-700/50 bg-white sidebar-enhanced transition-colors duration-300"
     >
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-gray-200 dark:border-slate-700/50">

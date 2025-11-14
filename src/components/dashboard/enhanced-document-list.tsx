@@ -8,18 +8,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { SearchableMultiSelect } from '@/components/ui/searchable-multi-select'
 import { SearchModeModal } from '@/components/similarity/search-mode-modal'
 import { EditDocumentMetadataModal } from './edit-document-metadata-modal'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   FileText,
   Target,
   Search,
-  Calendar,
   Filter,
   Download,
   AlertCircle,
@@ -28,8 +28,6 @@ import {
   Sparkles,
   MoreVertical,
   Trash2,
-  Square,
-  CheckSquare,
   X,
   Eye,
   Edit,
@@ -46,13 +44,14 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Loader2,
-  RotateCcw
+  RotateCcw,
+  ArrowUpDown
 } from 'lucide-react'
 import {
-  LAW_FIRM_OPTIONS, 
-  FUND_MANAGER_OPTIONS, 
-  FUND_ADMIN_OPTIONS, 
-  JURISDICTION_OPTIONS 
+  LAW_FIRM_OPTIONS,
+  FUND_MANAGER_OPTIONS,
+  FUND_ADMIN_OPTIONS,
+  JURISDICTION_OPTIONS
 } from '@/lib/metadata-constants'
 import { format } from 'date-fns'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
@@ -96,9 +95,9 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<string>('upload_time')
+  const [sortBy, setSortBy] = useState<string>('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  
+
   // Metadata filters
   const [showFilters, setShowFilters] = useState(false)
   const [lawFirmFilter, setLawFirmFilter] = useState<string[]>([])
@@ -108,8 +107,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
-  const [isSelectMode, setIsSelectMode] = useState(false)
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false)
   const [editingDocument, setEditingDocument] = useState<Document | null>(null)
   const [renameDialog, setRenameDialog] = useState<RenameDocumentDialogState>({
     document: null,
@@ -139,7 +136,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   const [retryingDocuments, setRetryingDocuments] = useState<Set<string>>(new Set())
   const [cancellingDocuments, setCancellingDocuments] = useState<Set<string>>(new Set())
   const [cancelDialogOpen, setCancelDialogOpen] = useState<string | null>(null)
-  
+
   // Search mode and source document state
   const [searchModeModal, setSearchModeModal] = useState<SearchModeState>({
     document: null,
@@ -149,32 +146,35 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
 
   // Track when we last kicked the cron endpoint so we don't spam requests
   const [lastProcessingTrigger, setLastProcessingTrigger] = useState<number>(0)
-  
+
   // Enhanced processing status tracking
   const [documentStatuses, setDocumentStatuses] = useState<Map<string, DocumentStatus>>(new Map())
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const documentsPerPage = 10
-  
+
   // Router for navigation
   const router = useRouter()
+
+  // Check if selection mode is active
+  const isSelectMode = selectedDocuments.size > 0 || sourceForSelectionId !== null
 
   // Simple document fetching - no complex caching or polling
   const fetchDocuments = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setIsLoading(true)
       setError('')
-      
+
       const response = await fetch('/api/documents', { cache: 'no-store' })
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch documents: ${response.status}`)
       }
-      
+
       const data = await response.json()
       setDocuments(data.documents || [])
-      
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load documents'
       setError(errorMessage)
@@ -185,7 +185,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   }, [])
 
   const handleDocumentUpdate = (updatedDocument: Document) => {
-    setDocuments(prev => prev.map(doc => 
+    setDocuments(prev => prev.map(doc =>
       doc.id === updatedDocument.id ? updatedDocument : doc
     ))
     setEditingDocument(null)
@@ -312,8 +312,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   const handleSelectedSearchClick = useCallback(() => {
     if (searchModeModal.document) {
       const sourceDocId = searchModeModal.document.id
-      setSourceForSelectionId(sourceDocId) // Set the source doc
-      setIsSelectMode(true)
+      setSourceForSelectionId(sourceDocId)
       setSelectedDocuments(prev => new Set(prev).add(sourceDocId))
     }
   }, [searchModeModal.document])
@@ -366,7 +365,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
       const updatedDocument = await response.json()
 
       // Update local state
-      setDocuments(prev => prev.map(doc => 
+      setDocuments(prev => prev.map(doc =>
         doc.id === updatedDocument.id ? updatedDocument : doc
       ))
 
@@ -382,7 +381,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   const viewPdf = async (document: Document) => {
     try {
       const response = await fetch(`/api/documents/${document.id}/download`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to load document')
       }
@@ -398,7 +397,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
 
   // Cancel processing handler
   const handleCancelProcessing = useCallback(async (documentId: string) => {
-    // Set loading state
     setCancellingDocuments(prev => {
       const next = new Set(prev)
       next.add(documentId)
@@ -406,7 +404,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
     })
 
     try {
-      // Optimistically mark as cancelled immediately (valid status)
       setDocuments(prev => prev.map(doc =>
         doc.id === documentId ? {
           ...doc,
@@ -426,12 +423,10 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
 
       const result = await response.json()
 
-      // If cleanup was successful, remove document from list entirely
       if (result.cleanedUp && result.status === 'deleted') {
         setDocuments(prev => prev.filter(doc => doc.id !== documentId))
         clientLogger.info('Document cancelled and completely removed:', result)
       } else {
-        // Cleanup incomplete - keep in list as cancelled
         setDocuments(prev => prev.map(doc =>
           doc.id === documentId ? {
             ...doc,
@@ -442,7 +437,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
         clientLogger.warn('Document cancelled but cleanup incomplete:', result)
       }
 
-      // Remove from tracking if it was being monitored
       setDocumentStatuses(prev => {
         const next = new Map(prev)
         next.delete(documentId)
@@ -451,17 +445,14 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
 
     } catch (error) {
       clientLogger.error('Error cancelling processing:', error)
-      // Revert optimistic update on error
       await fetchDocuments()
       alert(error instanceof Error ? error.message : 'Failed to cancel processing. Please try again.')
     } finally {
-      // Clear loading state
       setCancellingDocuments(prev => {
         const next = new Set(prev)
         next.delete(documentId)
         return next
       })
-      // Close the dialog
       setCancelDialogOpen(prev => prev === documentId ? null : prev)
     }
   }, [fetchDocuments])
@@ -514,7 +505,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
     const processingDocs = documents.filter(doc => trackedStatuses.includes(doc.status))
 
     if (processingDocs.length === 0) {
-      // Clear any existing statuses for non-processing documents
       setDocumentStatuses(new Map())
       return
     }
@@ -534,10 +524,9 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
 
         const results = await Promise.all(statusPromises)
 
-        // Use functional update to avoid dependency on current documentStatuses
         setDocumentStatuses(prevStatuses => {
           const newStatuses = new Map(prevStatuses)
-          
+
           results.forEach(result => {
             if (!result) return
 
@@ -547,19 +536,17 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
               newStatuses.set(result.docId, result.status)
             }
           })
-          
-          // Remove statuses for documents that are no longer processing
+
           const processingIds = new Set(processingDocs.map(doc => doc.id))
           for (const [docId] of newStatuses) {
             if (!processingIds.has(docId)) {
               newStatuses.delete(docId)
             }
           }
-          
+
           return newStatuses
         })
 
-        // Update local document status when the backend status changes
         const statusById = new Map<string, DocumentStatus>()
         results.forEach(result => {
           if (result?.status) {
@@ -601,7 +588,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
         }))
 
         if (shouldRefresh) {
-          // Pull the latest document metadata (page count, fields, etc.) once the status settles
           fetchDocuments(false)
         }
       } catch (error) {
@@ -609,9 +595,8 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
       }
     }
 
-    // Poll every 3 seconds for processing documents
     const interval = setInterval(pollStatuses, 3000)
-    pollStatuses() // Initial poll
+    pollStatuses()
 
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -650,10 +635,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   }, [documents, lastProcessingTrigger])
 
   // Filter helper functions
-  const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
-  }
-
   const clearAllFilters = () => {
     setLawFirmFilter([])
     setFundManagerFilter([])
@@ -667,21 +648,14 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   }
 
   const hasActiveFilters = () => {
-    return lawFirmFilter.length > 0 || 
-           fundManagerFilter.length > 0 || 
-           fundAdminFilter.length > 0 || 
+    return lawFirmFilter.length > 0 ||
+           fundManagerFilter.length > 0 ||
+           fundAdminFilter.length > 0 ||
            jurisdictionFilter.length > 0
   }
 
   // Multi-select helper functions
-  const toggleSelectMode = () => {
-    setIsSelectMode(!isSelectMode)
-    setSelectedDocuments(new Set())
-    setSourceForSelectionId(null) // Reset source doc
-  }
-
   const toggleDocumentSelection = (documentId: string) => {
-    // Prevent the source document from being deselected
     if (documentId === sourceForSelectionId) {
       return
     }
@@ -694,22 +668,22 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
     setSelectedDocuments(newSelected)
   }
 
-  const selectAllDocuments = () => {
-    const allIds = new Set(filteredDocuments.map(doc => doc.id))
-    setSelectedDocuments(allIds)
-  }
-
-  const selectAllOnPage = () => {
-    const paginatedIds = paginatedDocuments.map(doc => doc.id)
-    setSelectedDocuments(prev => new Set([...Array.from(prev), ...paginatedIds]))
-  }
-
-  const deselectAllDocuments = () => {
-    if (sourceForSelectionId) {
-      setSelectedDocuments(new Set([sourceForSelectionId]))
+  const toggleAllDocuments = () => {
+    if (selectedDocuments.size === paginatedDocuments.length) {
+      if (sourceForSelectionId) {
+        setSelectedDocuments(new Set([sourceForSelectionId]))
+      } else {
+        setSelectedDocuments(new Set())
+      }
     } else {
-      setSelectedDocuments(new Set())
+      const allIds = new Set(paginatedDocuments.map(doc => doc.id))
+      setSelectedDocuments(allIds)
     }
+  }
+
+  const cancelSelection = () => {
+    setSelectedDocuments(new Set())
+    setSourceForSelectionId(null)
   }
 
   const deleteDocument = async (documentId: string) => {
@@ -719,7 +693,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
       }
       return prev
     })
-    
+
     try {
       const response = await fetch(`/api/documents/${documentId}`, {
         method: 'DELETE',
@@ -729,10 +703,8 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
         throw new Error('Failed to delete document')
       }
 
-      // Remove from local state
       setDocuments(prev => prev.filter(doc => doc.id !== documentId))
-      
-      // If it was selected, remove from selection
+
       if (selectedDocuments.has(documentId)) {
         setSelectedDocuments(prev => {
           const newSelected = new Set(prev)
@@ -766,20 +738,18 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
         setBulkDeleteState(prev => ({ ...prev, processed: prev.processed + 1 }))
       }
       setBulkDeleteState(prev => ({ ...prev, isDeleting: false }))
-      setShowBulkDeleteDialog(false)
       setSelectedDocuments(new Set())
-      setIsSelectMode(false)
+      setSourceForSelectionId(null)
     } catch (error) {
       clientLogger.error('Error in bulk delete:', error)
       setBulkDeleteState(prev => ({ ...prev, isDeleting: false }))
-      setShowBulkDeleteDialog(false)
     }
   }
 
   const downloadPdf = async (document: Document) => {
     try {
       const response = await fetch(`/api/documents/${document.id}/download`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to download document')
       }
@@ -799,6 +769,16 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
     }
   }
 
+  // Sort handler for column headers
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(column)
+      setSortOrder('desc')
+    }
+  }
+
   // Initial load
   useEffect(() => {
     fetchDocuments()
@@ -815,56 +795,51 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   // Apply filtering, sorting, and search directly
   useEffect(() => {
     let filtered = documents.filter(doc => {
-      // Search query filter
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
-      
-      // Status filter
-      const matchesStatus = statusFilter === 'all' || 
+
+      const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'processing' && ['uploading', 'queued', 'processing'].includes(doc.status)) ||
         doc.status === statusFilter
-      
-      // Metadata filters
-      const matchesLawFirm = lawFirmFilter.length === 0 || 
+
+      const matchesLawFirm = lawFirmFilter.length === 0 ||
         (doc.metadata?.law_firm && lawFirmFilter.includes(doc.metadata.law_firm))
-      
-      const matchesFundManager = fundManagerFilter.length === 0 || 
+
+      const matchesFundManager = fundManagerFilter.length === 0 ||
         (doc.metadata?.fund_manager && fundManagerFilter.includes(doc.metadata.fund_manager))
-      
-      const matchesFundAdmin = fundAdminFilter.length === 0 || 
+
+      const matchesFundAdmin = fundAdminFilter.length === 0 ||
         (doc.metadata?.fund_admin && fundAdminFilter.includes(doc.metadata.fund_admin))
-      
-      const matchesJurisdiction = jurisdictionFilter.length === 0 || 
+
+      const matchesJurisdiction = jurisdictionFilter.length === 0 ||
         (doc.metadata?.jurisdiction && jurisdictionFilter.includes(doc.metadata.jurisdiction))
-      
-      return matchesSearch && matchesStatus && matchesLawFirm && 
+
+      return matchesSearch && matchesStatus && matchesLawFirm &&
              matchesFundManager && matchesFundAdmin && matchesJurisdiction
     })
 
-    // Apply sorting
     filtered = filtered.sort((a, b) => {
       let comparison = 0
-      
+
       switch (sortBy) {
-        case 'upload_time':
+        case 'created_at':
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           break
-        case 'name':
-          comparison = a.title.localeCompare(b.title)
+        case 'updated_at':
+          comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
           break
-        case 'size':
-          comparison = a.file_size - b.file_size
+        case 'title':
+          comparison = a.title.localeCompare(b.title)
           break
         default:
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison
     })
 
     setFilteredDocuments(filtered)
-    // Reset to first page when filters change
     setCurrentPage(1)
   }, [documents, searchQuery, statusFilter, lawFirmFilter, fundManagerFilter, fundAdminFilter, jurisdictionFilter, sortBy, sortOrder])
 
@@ -931,20 +906,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
     }
   }
 
-  // Helper functions for document display
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
-
-  const formatPageCount = (pageCount?: number) => {
-    if (!pageCount || pageCount === 0) return null
-    return pageCount === 1 ? '1 page' : `${pageCount} pages`
-  }
-
   const statusCounts = useMemo(() => {
     const filteredByMetadata = documents.filter(doc => {
       const matchesSearch = searchQuery === '' ||
@@ -977,9 +938,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Documents</h2>
-        </div>
         <Card>
           <CardContent className="flex items-center justify-center p-12">
             <div className="animate-pulse flex flex-col items-center">
@@ -994,121 +952,57 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Documents</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          {isSelectMode && (
-            <>
-              <Badge variant="secondary">
-                {selectedDocuments.size} selected
-              </Badge>
-              {sourceForSelectionId && (
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="bg-emerald-600 hover:bg-emerald-700 focus-visible:ring-emerald-400"
-                  disabled={selectedDocuments.size < 2}
-                  onClick={() => {
-                    const ids = Array.from(selectedDocuments)
-                    router.push(`/documents/selected-search?ids=${ids.join(',')}`)
-                  }}
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  Search Selected ({selectedDocuments.size})
-                </Button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    Select All
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onSelect={selectAllOnPage}>
-                    Select All on Page
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={selectAllDocuments}>
-                    Select All Documents
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button size="sm" variant="outline" onClick={deselectAllDocuments}>
-                Deselect All
-              </Button>
-              {selectedDocuments.size > 0 && !sourceForSelectionId && (
-                <AlertDialog open={showBulkDeleteDialog} onOpenChange={(open) => {
-                  if (!open && !bulkDeleteState.isDeleting) {
-                    setShowBulkDeleteDialog(false)
-                  } else {
-                    setShowBulkDeleteDialog(open)
-                  }
-                }}>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => {
-                        setBulkDeleteState({ total: selectedDocuments.size, processed: 0, isDeleting: false })
-                        setShowBulkDeleteDialog(true)
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Selected ({selectedDocuments.size})
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent
-                    onKeyDown={event => {
-                      if (event.key === 'Enter' && !bulkDeleteState.isDeleting) {
-                        event.preventDefault()
-                        deleteSelectedDocuments()
-                      }
-                    }}
-                  >
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Documents</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete {selectedDocuments.size} selected document{selectedDocuments.size > 1 ? 's' : ''}? 
-                        This action cannot be undone and will permanently remove the document{selectedDocuments.size > 1 ? 's' : ''} 
-                        from your account.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={bulkDeleteState.isDeleting}>Cancel</AlertDialogCancel>
-                      <Button
-                        type="button"
-                        onClick={deleteSelectedDocuments}
-                        disabled={bulkDeleteState.isDeleting}
-                        className="bg-red-600 hover:bg-red-700"
-                        autoFocus
-                      >
-                        {bulkDeleteState.isDeleting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Deleting... ({bulkDeleteState.processed}/{bulkDeleteState.total})
-                          </>
-                        ) : (
-                          `Delete ${selectedDocuments.size} Document${selectedDocuments.size > 1 ? 's' : ''}`
-                        )}
-                      </Button>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-              <Button size="sm" variant="ghost" onClick={toggleSelectMode}>
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-            </>
+      {/* Selection Controls */}
+      {isSelectMode && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Badge variant="secondary">
+            {selectedDocuments.size} selected
+          </Badge>
+          {sourceForSelectionId && (
+            <Button
+              size="sm"
+              variant="default"
+              className="bg-emerald-600 hover:bg-emerald-700 focus-visible:ring-emerald-400"
+              disabled={selectedDocuments.size < 2}
+              onClick={() => {
+                const ids = Array.from(selectedDocuments)
+                router.push(`/documents/selected-search?ids=${ids.join(',')}`)
+              }}
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Search Selected ({selectedDocuments.size})
+            </Button>
           )}
+          {selectedDocuments.size > 0 && !sourceForSelectionId && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={deleteSelectedDocuments}
+              disabled={bulkDeleteState.isDeleting}
+            >
+              {bulkDeleteState.isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting... ({bulkDeleteState.processed}/{bulkDeleteState.total})
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete ({selectedDocuments.size})
+                </>
+              )}
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" onClick={cancelSelection}>
+            <X className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
         </div>
-      </div>
+      )}
 
       {/* Status Tabs */}
       <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 rounded-lg p-1 h-auto bg-muted">
           <TabsTrigger value="all" className="flex items-center gap-2">
             All
             <Badge variant="secondary" className="ml-1">
@@ -1139,61 +1033,36 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
         </TabsList>
 
         {/* Filters and Search */}
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-4 items-center mt-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" aria-hidden="true" />
             <Input
               placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 input-brighter h-9"
               aria-label="Search documents by title"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={showFilters ? "default" : "outline"}
-              size="sm"
-              onClick={toggleFilters}
-              className="flex items-center gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              Filters
-              {hasActiveFilters() && (
-                <Badge variant="secondary" className="ml-1 text-xs">
-                  {lawFirmFilter.length + fundManagerFilter.length + fundAdminFilter.length + jurisdictionFilter.length}
-                </Badge>
-              )}
-            </Button>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-40" aria-label="Sort documents">
-                <SelectValue placeholder="Sort by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="upload_time">Upload Time</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="size">Size</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleSortOrder}
-              className="px-3"
-              aria-label={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
-            >
-              {sortOrder === 'asc' ? (
-                <ArrowUp className="h-4 w-4" />
-              ) : (
-                <ArrowDown className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleFilters}
+            className="flex items-center gap-2 button-brighter"
+          >
+            <Filter className="h-4 w-4" />
+            Filters
+            {hasActiveFilters() && (
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {lawFirmFilter.length + fundManagerFilter.length + fundAdminFilter.length + jurisdictionFilter.length}
+              </Badge>
+            )}
+          </Button>
         </div>
 
         {/* Metadata Filters */}
         {showFilters && (
-          <div className="border rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-slate-800/60 filter-panel-enhanced">
+          <div className="border rounded-lg p-4 space-y-3 bg-muted mt-3">
             {hasActiveFilters() && (
               <div className="flex items-center justify-end mb-3">
                 <Button
@@ -1207,7 +1076,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                 </Button>
               </div>
             )}
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Law Firm Filter */}
               <div className="space-y-2">
@@ -1272,7 +1141,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
           </div>
         )}
 
-        <TabsContent value={statusFilter}>
+        <TabsContent value={statusFilter} className="mt-3">
           {error && (
             <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
               <CardContent className="pt-6">
@@ -1294,348 +1163,368 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
               </CardContent>
             </Card>
           ) : (
-            <div>
-              {/* Simple Document List - showing paginated documents */}
-              <div className="space-y-3">
-                {paginatedDocuments.map((document) => {
-                  const statusConfig = getStatusConfig(document.status)
-                  const StatusIcon = statusConfig.icon
+            <div className="space-y-4">
+              {/* Table */}
+              <Card className="card-enhanced">
+                <Table>
+                  <colgroup>
+                    <col className="w-12" />
+                    <col />
+                    <col className="w-48" />
+                    <col className="w-44" />
+                    <col className="w-44" />
+                    <col className="w-52" />
+                  </colgroup>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent bg-muted">
+                      <TableHead className="w-12 h-10 py-2 rounded-tl-xl">
+                        <Checkbox
+                          checked={selectedDocuments.size === paginatedDocuments.length && paginatedDocuments.length > 0}
+                          onCheckedChange={toggleAllDocuments}
+                          aria-label="Select all documents"
+                        />
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50 h-10 py-2 border-r border-gray-300 dark:border-gray-700"
+                        onClick={() => handleSort('title')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Name
+                          {sortBy === 'title' ? (
+                            sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                          ) : (
+                            <ArrowUpDown className="h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead className="w-48 h-10 py-2 border-r border-gray-300 dark:border-gray-700">
+                        Metadata
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50 w-44 h-10 py-2 border-r border-gray-300 dark:border-gray-700"
+                        onClick={() => handleSort('updated_at')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Last Modified
+                          {sortBy === 'updated_at' ? (
+                            sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                          ) : (
+                            <ArrowUpDown className="h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50 w-44 h-10 py-2"
+                        onClick={() => handleSort('created_at')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Created
+                          {sortBy === 'created_at' ? (
+                            sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                          ) : (
+                            <ArrowUpDown className="h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-right w-52 h-10 py-2 rounded-tr-xl" aria-label="Actions"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedDocuments.map((document) => {
+                      const statusConfig = getStatusConfig(document.status)
+                      const StatusIcon = statusConfig.icon
+                      const isSelected = selectedDocuments.has(document.id)
+                      const isSource = sourceForSelectionId === document.id
 
-                  return (
-                    <Card
-                      key={document.id}
-                      className={`card-enhanced group hover:shadow-md transition-all duration-200 ${
-                        isSelectMode && selectedDocuments.has(document.id) ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''
-                      } ${
-                        _selectedSearchSourceDocument?.id === document.id ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/20' : ''
-                      }`} 
-                      role="article" 
-                      aria-labelledby={`document-title-${document.id}`}
-                      data-testid="document-item"
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-4">
-                          {/* Document Icon and Selection */}
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            {isSelectMode && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => toggleDocumentSelection(document.id)}
-                                className="p-1 h-auto"
-                                aria-label={`${selectedDocuments.has(document.id) ? 'Deselect' : 'Select'} ${document.title}`}
-                              >
-                                {selectedDocuments.has(document.id) ? (
-                                  <CheckSquare className="h-5 w-5 text-blue-600" />
-                                ) : (
-                                  <Square className="h-5 w-5 text-gray-400" />
-                                )}
-                              </Button>
-                            )}
-                            {isSelectMode && sourceForSelectionId === document.id && (
-                              <div className="flex items-center gap-1 pl-1">
-                                <Target className="h-4 w-4 text-emerald-600" />
-                                <span className="text-xs font-medium text-emerald-600">Source</span>
+                      return (
+                        <TableRow
+                          key={document.id}
+                          data-state={isSelected ? "selected" : undefined}
+                          className={isSource && !isSelected ? "bg-emerald-50 dark:bg-emerald-950/20" : ""}
+                        >
+                          {/* Checkbox */}
+                          <TableCell>
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleDocumentSelection(document.id)}
+                              disabled={isSource}
+                              aria-label={`Select ${document.title}`}
+                            />
+                          </TableCell>
+
+                          {/* Name Column */}
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                                <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                               </div>
-                            )}
-                            <div className="p-2 bg-blue-50 dark:bg-gradient-to-br dark:from-blue-900/60 dark:to-blue-800/40 rounded-lg border dark:border-blue-700/30" aria-hidden="true">
-                              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            </div>
-                          </div>
-
-                          {/* Main Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between">
-                              {/* Document Info */}
-                              <div className="min-w-0 flex-1 space-y-2">
-                                {/* Title and Status Row */}
-                                <div className="flex items-center gap-3">
-                                  <h3 id={`document-title-${document.id}`} className="text-base font-semibold truncate text-gray-900 dark:text-white">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-gray-900 dark:text-white truncate">
                                     {document.title}
-                                  </h3>
-                                  <Badge 
-                                    className={`${statusConfig.color} flex items-center gap-1 flex-shrink-0`}
-                                    data-testid="document-status"
-                                  >
+                                  </span>
+                                  {isSource && (
+                                    <Badge variant="outline" className="border-emerald-500 text-emerald-600">
+                                      <Target className="h-3 w-3 mr-1" />
+                                      Source
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge className={`${statusConfig.color} flex items-center gap-1`}>
                                     <StatusIcon className="h-3 w-3" />
-                                  {document.status === 'processing'
-                                    ? documentStatuses.get(document.id)?.phase || statusConfig.label
-                                    : statusConfig.label}
+                                    {document.status === 'processing'
+                                      ? documentStatuses.get(document.id)?.phase || statusConfig.label
+                                      : statusConfig.label}
                                   </Badge>
+                                  {document.processing_error && (
+                                    <span className="text-xs text-red-600 dark:text-red-400 truncate">
+                                      {document.processing_error}
+                                    </span>
+                                  )}
                                 </div>
+                              </div>
+                            </div>
+                          </TableCell>
 
-                                {/* Metadata Row */}
-                                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {format(new Date(document.created_at), 'dd MMM yyyy - HH:mm')}
-                                  </div>
-                                  <div>{formatFileSize(document.file_size)}</div>
-                                  {formatPageCount(document.page_count) && <div>{formatPageCount(document.page_count)}</div>}
-                                </div>
-
-                                {/* Document Metadata Row */}
-                                {(document.metadata?.law_firm || document.metadata?.fund_manager || document.metadata?.fund_admin || document.metadata?.jurisdiction) && (
-                                  <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-300">
-                                    {document.metadata?.law_firm && (
-                                      <div className="flex items-center gap-1">
-                                        <Building className="h-3 w-3" />
-                        {resolveOptionLabel(document.metadata?.law_firm ?? '', LAW_FIRM_OPTIONS)}
-                                      </div>
-                                    )}
-                                    {document.metadata?.fund_manager && (
-                                      <div className="flex items-center gap-1">
-                                        <Users className="h-3 w-3" />
-                        {resolveOptionLabel(document.metadata?.fund_manager ?? '', FUND_MANAGER_OPTIONS)}
-                                      </div>
-                                    )}
-                                    {document.metadata?.fund_admin && (
-                                      <div className="flex items-center gap-1">
-                                        <Briefcase className="h-3 w-3" />
-                        {resolveOptionLabel(document.metadata?.fund_admin ?? '', FUND_ADMIN_OPTIONS)}
-                                      </div>
-                                    )}
-                                    {document.metadata?.jurisdiction && (
-                                      <div className="flex items-center gap-1">
-                                        <Globe className="h-3 w-3" />
-                        {resolveOptionLabel(document.metadata?.jurisdiction ?? '', JURISDICTION_OPTIONS)}
-                                      </div>
-                                    )}
+                          {/* Metadata Column */}
+                          <TableCell>
+                            {(document.metadata?.law_firm || document.metadata?.fund_manager || document.metadata?.fund_admin || document.metadata?.jurisdiction) ? (
+                              <div className="flex flex-col gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                                {document.metadata?.law_firm && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Building className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                    <span className="truncate">{resolveOptionLabel(document.metadata?.law_firm ?? '', LAW_FIRM_OPTIONS)}</span>
                                   </div>
                                 )}
-
-                                {/* Enhanced Processing Status */}
-                                {document.status === 'processing' && documentStatuses.get(document.id) && (
-                                  <div className="space-y-2">
-                                    <div className="text-xs text-gray-600 dark:text-gray-400">
-                                      {documentStatuses.get(document.id)?.message}
-                                    </div>
-                                    {documentStatuses.get(document.id)?.estimatedTimeRemaining && (
-                                      <div className="text-xs text-blue-600 dark:text-blue-400">
-                                        {documentStatuses.get(document.id)?.estimatedTimeRemaining}
-                                      </div>
-                                    )}
+                                {document.metadata?.fund_manager && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                    <span className="truncate">{resolveOptionLabel(document.metadata?.fund_manager ?? '', FUND_MANAGER_OPTIONS)}</span>
                                   </div>
                                 )}
-
-                                {document.status !== 'processing' && document.status !== 'completed' && (
-                                  <div className="space-y-2">
-                                    <div className="text-xs text-gray-600 dark:text-gray-400">
-                                      {document.status === 'error'
-                                        ? document.processing_error || 'Document processing failed'
-                                        : statusConfig.label}
-                                    </div>
+                                {document.metadata?.fund_admin && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Briefcase className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                    <span className="truncate">{resolveOptionLabel(document.metadata?.fund_admin ?? '', FUND_ADMIN_OPTIONS)}</span>
                                   </div>
                                 )}
-
-                                {/* Error Message */}
-                                {document.processing_error && (
-                                  <div className="p-2 bg-red-50 dark:bg-red-950/50 rounded text-xs text-red-700 dark:text-red-400">
-                                    {document.processing_error}
+                                {document.metadata?.jurisdiction && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Globe className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                    <span className="truncate">{resolveOptionLabel(document.metadata?.jurisdiction ?? '', JURISDICTION_OPTIONS)}</span>
                                   </div>
                                 )}
                               </div>
+                            ) : (
+                              <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+                            )}
+                          </TableCell>
 
-                              {/* Action Buttons */}
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {/* Primary Action Buttons */}
-                                {document.status === 'completed' && (
-                                  <>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => viewPdf(document)}
-                                    >
-                                      <Eye className="h-3 w-3 mr-1" />
-                                      View
-                                    </Button>
-                                    {document.metadata?.embeddings_skipped ? (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleRetryProcessing(document)}
-                                        disabled={retryingDocuments.has(document.id)}
-                                        className="min-w-[120px] border-amber-300 text-amber-700 hover:bg-amber-50"
-                                      >
-                                        {retryingDocuments.has(document.id) ? (
-                                          <>
-                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                            Retrying...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <RotateCcw className="h-3 w-3 mr-1" />
-                                            Retry Embeddings
-                                          </>
-                                        )}
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleSetSearchModeDocument(document)}
-                                      >
-                                        <Sparkles className="h-3 w-3 mr-1" />
-                                        Search Similar
-                                      </Button>
-                                    )}
-                                  </>
-                                )}
+                          {/* Last Modified Column */}
+                          <TableCell>
+                            <div className="text-xs text-gray-600 dark:text-gray-300">
+                              {format(new Date(document.updated_at), 'MMM dd, yyyy HH:mm')}
+                            </div>
+                          </TableCell>
 
-                                {document.status === 'error' && (
+                          {/* Created Column */}
+                          <TableCell>
+                            <div className="text-xs text-gray-600 dark:text-gray-300">
+                              {format(new Date(document.created_at), 'MMM dd, yyyy HH:mm')}
+                            </div>
+                          </TableCell>
+
+                          {/* Actions Column */}
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Primary Action Buttons */}
+                              {document.status === 'completed' && (
+                                <>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleRetryProcessing(document)}
-                                    disabled={retryingDocuments.has(document.id)}
-                                    className="min-w-[96px]"
+                                    onClick={() => viewPdf(document)}
+                                    className="h-8 button-brighter"
                                   >
-                                    {retryingDocuments.has(document.id) ? (
-                                      <>
-                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                        Retrying...
-                                      </>
-                                    ) : (
-                                      'Retry Processing'
-                                    )}
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    View
                                   </Button>
-                                )}
-
-                                {/* More Options Menu */}
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button 
-                                          variant="ghost"
-                                          size="sm"
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                      aria-label={`More options for ${document.title}`}
+                                  {document.metadata?.embeddings_skipped ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleRetryProcessing(document)}
+                                      disabled={retryingDocuments.has(document.id)}
+                                      className="h-8 text-amber-700 hover:text-amber-800 hover:bg-amber-50 border-amber-300"
                                     >
-                                      <MoreVertical className="h-4 w-4" />
+                                      {retryingDocuments.has(document.id) ? (
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                      ) : (
+                                        <RotateCcw className="h-3 w-3 mr-1" />
+                                      )}
+                                      Retry
                                     </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem 
-                                      onClick={() => downloadPdf(document)}
-                                      className="flex items-center"
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleSetSearchModeDocument(document)}
+                                      className="h-8 button-brighter"
                                     >
-                                      <Download className="h-4 w-4 mr-2" />
-                                      Download PDF
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={toggleSelectMode}
-                                      className="flex items-center"
-                                    >
-                                      <CheckSquare className="h-4 w-4 mr-2" />
-                                      Select Documents
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => setEditingDocument(document)}
-                                      className="flex items-center"
-                                    >
-                                      <Edit className="h-4 w-4 mr-2" />
-                                      Edit Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => openRenameDialog(document)}
-                                      className="flex items-center"
-                                    >
-                                      <Edit2 className="h-4 w-4 mr-2" />
-                                      Rename Document
-                                    </DropdownMenuItem>
-                                    
-                                    {/* Cancel Processing Option */}
-                                    {['queued', 'processing'].includes(document.status) && (() => {
-                                      const isCancelling = cancellingDocuments.has(document.id)
-                                      const isDialogOpen = cancelDialogOpen === document.id
-                                      return (
-                                        <>
-                                          <DropdownMenuSeparator />
-                                          <AlertDialog
-                                            open={isDialogOpen}
-                                            onOpenChange={(open) => {
-                                              if (!open) {
-                                                // Prevent closing when cancelling
-                                                if (isCancelling) {
-                                                  return
-                                                }
-                                                setCancelDialogOpen(null)
-                                              } else {
-                                                setCancelDialogOpen(document.id)
+                                      <Sparkles className="h-3 w-3 mr-1" />
+                                      Search
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+
+                              {document.status === 'error' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRetryProcessing(document)}
+                                  disabled={retryingDocuments.has(document.id)}
+                                  className="h-8"
+                                >
+                                  {retryingDocuments.has(document.id) ? (
+                                    <>
+                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                      Retrying...
+                                    </>
+                                  ) : (
+                                    'Retry'
+                                  )}
+                                </Button>
+                              )}
+
+                              {/* More Options Menu */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 button-brighter"
+                                    aria-label={`More options for ${document.title}`}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => downloadPdf(document)}
+                                    className="flex items-center"
+                                  >
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download PDF
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => setEditingDocument(document)}
+                                    className="flex items-center"
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => openRenameDialog(document)}
+                                    className="flex items-center"
+                                  >
+                                    <Edit2 className="h-4 w-4 mr-2" />
+                                    Rename Document
+                                  </DropdownMenuItem>
+
+                                  {/* Cancel Processing Option */}
+                                  {['queued', 'processing'].includes(document.status) && (() => {
+                                    const isCancelling = cancellingDocuments.has(document.id)
+                                    const isDialogOpen = cancelDialogOpen === document.id
+                                    return (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <AlertDialog
+                                          open={isDialogOpen}
+                                          onOpenChange={(open) => {
+                                            if (!open) {
+                                              if (isCancelling) {
+                                                return
                                               }
-                                            }}
-                                          >
-                                            <AlertDialogTrigger asChild>
-                                              <DropdownMenuItem
-                                                className="flex items-center text-orange-600 dark:text-orange-400"
-                                                onSelect={(e) => e.preventDefault()}
+                                              setCancelDialogOpen(null)
+                                            } else {
+                                              setCancelDialogOpen(document.id)
+                                            }
+                                          }}
+                                        >
+                                          <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem
+                                              className="flex items-center text-orange-600 dark:text-orange-400"
+                                              onSelect={(e) => e.preventDefault()}
+                                            >
+                                              <X className="h-4 w-4 mr-2" />
+                                              Cancel Processing
+                                            </DropdownMenuItem>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Cancel Processing</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Are you sure you want to cancel processing for &quot;{document.title}&quot;?
+                                                {isCancelling && (
+                                                  <span className="block mt-2 text-orange-600 dark:text-orange-400">
+                                                    Cancelling and cleaning up...
+                                                  </span>
+                                                )}
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel disabled={isCancelling}>
+                                                Keep Processing
+                                              </AlertDialogCancel>
+                                              <Button
+                                                type="button"
+                                                onClick={() => handleCancelProcessing(document.id)}
+                                                disabled={isCancelling}
+                                                className="bg-orange-600 hover:bg-orange-700"
                                               >
-                                                <X className="h-4 w-4 mr-2" />
-                                                Cancel Processing
-                                              </DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                              <AlertDialogHeader>
-                                                <AlertDialogTitle>Cancel Processing</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                  Are you sure you want to cancel processing for &quot;{document.title}&quot;?
-                                                  {isCancelling && (
-                                                    <span className="block mt-2 text-orange-600 dark:text-orange-400">
-                                                      Cancelling and cleaning up...
-                                                    </span>
-                                                  )}
-                                                </AlertDialogDescription>
-                                              </AlertDialogHeader>
-                                              <AlertDialogFooter>
-                                                <AlertDialogCancel disabled={isCancelling}>
-                                                  Keep Processing
-                                                </AlertDialogCancel>
-                                                <Button
-                                                  type="button"
-                                                  onClick={() => handleCancelProcessing(document.id)}
-                                                  disabled={isCancelling}
-                                                  className="bg-orange-600 hover:bg-orange-700"
-                                                >
-                                                  {isCancelling ? (
-                                                    <>
-                                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                      Cancelling...
-                                                    </>
-                                                  ) : (
-                                                    'Cancel Processing'
-                                                  )}
-                                                </Button>
-                                              </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                          </AlertDialog>
-                                        </>
-                                      )
-                                    })()}
-                                    
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      className="flex items-center text-red-600 dark:text-red-400"
-                                      onSelect={() => {
-                                        setDeleteDialog({ document, isOpen: true, isDeleting: false })
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
+                                                {isCancelling ? (
+                                                  <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Cancelling...
+                                                  </>
+                                                ) : (
+                                                  'Cancel Processing'
+                                                )}
+                                              </Button>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </>
+                                    )
+                                  })()}
+
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="flex items-center text-red-600 dark:text-red-400"
+                                    onSelect={() => {
+                                      setDeleteDialog({ document, isOpen: true, isDeleting: false })
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </Card>
 
               {/* Pagination Controls */}
               {filteredDocuments.length > documentsPerPage && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className="flex items-center justify-between pt-4">
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     Showing {startIndex + 1} to {Math.min(endIndex, filteredDocuments.length)} of {filteredDocuments.length} documents
                   </div>
@@ -1649,7 +1538,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                     >
                       <ChevronsLeft className="h-4 w-4" />
                     </Button>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -1659,7 +1548,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    
+
                     <div className="flex items-center gap-1">
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
@@ -1672,7 +1561,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                         } else {
                           pageNum = currentPage - 2 + i;
                         }
-                        
+
                         return (
                           <Button
                             key={pageNum}
@@ -1686,7 +1575,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                         );
                       })}
                     </div>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -1696,7 +1585,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"
