@@ -138,37 +138,40 @@ export default async function SelectedSearchPage({ searchParams }: PageProps) {
                       )}
                     </div>
 
-                    {(sourceDocument.metadata?.law_firm ||
-                      sourceDocument.metadata?.fund_manager ||
-                      sourceDocument.metadata?.fund_admin ||
-                      sourceDocument.metadata?.jurisdiction) && (
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-300">
-                        {sourceDocument.metadata?.law_firm && (
-                          <div className="flex items-center gap-1">
-                            <Building className="h-3 w-3" />
-                            {resolveOptionLabel(sourceDocument.metadata?.law_firm, LAW_FIRM_OPTIONS)}
-                          </div>
-                        )}
-                        {sourceDocument.metadata?.fund_manager && (
-                          <div className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {resolveOptionLabel(sourceDocument.metadata?.fund_manager, FUND_MANAGER_OPTIONS)}
-                          </div>
-                        )}
-                        {sourceDocument.metadata?.fund_admin && (
-                          <div className="flex items-center gap-1">
-                            <Briefcase className="h-3 w-3" />
-                            {resolveOptionLabel(sourceDocument.metadata?.fund_admin, FUND_ADMIN_OPTIONS)}
-                          </div>
-                        )}
-                        {sourceDocument.metadata?.jurisdiction && (
-                          <div className="flex items-center gap-1">
-                            <Globe className="h-3 w-3" />
-                            {resolveOptionLabel(sourceDocument.metadata?.jurisdiction, JURISDICTION_OPTIONS)}
-                          </div>
+                    <div className="flex flex-wrap items-center gap-4 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Building className="h-3 w-3 text-gray-400" />
+                        {sourceDocument.metadata?.law_firm ? (
+                          <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(sourceDocument.metadata?.law_firm, LAW_FIRM_OPTIONS)}</span>
+                        ) : (
+                          <span className="text-orange-500 dark:text-orange-400">(blank)</span>
                         )}
                       </div>
-                    )}
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3 text-gray-400" />
+                        {sourceDocument.metadata?.fund_manager ? (
+                          <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(sourceDocument.metadata?.fund_manager, FUND_MANAGER_OPTIONS)}</span>
+                        ) : (
+                          <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Briefcase className="h-3 w-3 text-gray-400" />
+                        {sourceDocument.metadata?.fund_admin ? (
+                          <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(sourceDocument.metadata?.fund_admin, FUND_ADMIN_OPTIONS)}</span>
+                        ) : (
+                          <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Globe className="h-3 w-3 text-gray-400" />
+                        {sourceDocument.metadata?.jurisdiction ? (
+                          <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(sourceDocument.metadata?.jurisdiction, JURISDICTION_OPTIONS)}</span>
+                        ) : (
+                          <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <SourceDocumentActions document={sourceDocument} accent="emerald" />

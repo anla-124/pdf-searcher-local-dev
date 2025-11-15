@@ -110,37 +110,40 @@ export default async function SimilarDocumentsPage({ params }: PageProps) {
                     )}
                   </div>
 
-                  {(document.metadata?.law_firm || 
-                    document.metadata?.fund_manager || 
-                    document.metadata?.fund_admin || 
-                    document.metadata?.jurisdiction) && (
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-300">
-                      {document.metadata?.law_firm && (
-                        <div className="flex items-center gap-1">
-                          <Building className="h-3 w-3" />
-                          {resolveOptionLabel(document.metadata?.law_firm, LAW_FIRM_OPTIONS)}
-                        </div>
-                      )}
-                      {document.metadata?.fund_manager && (
-                        <div className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {resolveOptionLabel(document.metadata?.fund_manager, FUND_MANAGER_OPTIONS)}
-                        </div>
-                      )}
-                      {document.metadata?.fund_admin && (
-                        <div className="flex items-center gap-1">
-                          <Briefcase className="h-3 w-3" />
-                          {resolveOptionLabel(document.metadata?.fund_admin, FUND_ADMIN_OPTIONS)}
-                        </div>
-                      )}
-                      {document.metadata?.jurisdiction && (
-                        <div className="flex items-center gap-1">
-                          <Globe className="h-3 w-3" />
-                          {resolveOptionLabel(document.metadata?.jurisdiction, JURISDICTION_OPTIONS)}
-                        </div>
+                  <div className="flex flex-wrap items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1">
+                      <Building className="h-3 w-3 text-gray-400" />
+                      {document.metadata?.law_firm ? (
+                        <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata?.law_firm, LAW_FIRM_OPTIONS)}</span>
+                      ) : (
+                        <span className="text-orange-500 dark:text-orange-400">(blank)</span>
                       )}
                     </div>
-                  )}
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3 text-gray-400" />
+                      {document.metadata?.fund_manager ? (
+                        <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata?.fund_manager, FUND_MANAGER_OPTIONS)}</span>
+                      ) : (
+                        <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Briefcase className="h-3 w-3 text-gray-400" />
+                      {document.metadata?.fund_admin ? (
+                        <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata?.fund_admin, FUND_ADMIN_OPTIONS)}</span>
+                      ) : (
+                        <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Globe className="h-3 w-3 text-gray-400" />
+                      {document.metadata?.jurisdiction ? (
+                        <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata?.jurisdiction, JURISDICTION_OPTIONS)}</span>
+                      ) : (
+                        <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               <SourceDocumentActions document={document} />

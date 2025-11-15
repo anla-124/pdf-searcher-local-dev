@@ -27,9 +27,6 @@ interface DocumentMetadata {
   fund_manager: FundManagerOption | ''
   fund_admin: FundAdminOption | ''
   jurisdiction: JurisdictionOption | ''
-  subscription_agreement_skipped: boolean
-  subscription_agreement_start_page: number | null
-  subscription_agreement_end_page: number | null
 }
 
 interface TouchedFields {
@@ -37,9 +34,6 @@ interface TouchedFields {
   fund_manager: boolean
   fund_admin: boolean
   jurisdiction: boolean
-  subscription_agreement_skipped: boolean
-  subscription_agreement_start_page: boolean
-  subscription_agreement_end_page: boolean
 }
 
 interface UploadFile {
@@ -112,10 +106,7 @@ export function DocumentUpload({ onUploadComplete }: DocumentUploadProps) {
         law_firm: false,
         fund_manager: false,
         fund_admin: false,
-        jurisdiction: false,
-        subscription_agreement_skipped: false,
-        subscription_agreement_start_page: false,
-        subscription_agreement_end_page: false
+        jurisdiction: false
       }
     }))
 
@@ -327,19 +318,11 @@ export function DocumentUpload({ onUploadComplete }: DocumentUploadProps) {
     setFiles(prev => prev.filter(f => f.status !== 'completed'))
   }
 
-const toPositiveIntegerOrNull = (value: string): number | null => {
-  if (value.trim() === '') return null
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return null
-  const rounded = Math.floor(parsed)
-  return rounded > 0 ? rounded : null
-}
-
 const updateFileMetadata = (fileId: string, field: keyof DocumentMetadata, value: string | number | boolean | null) => {
-  setFiles(prev => prev.map(f => 
-    f.id === fileId 
-      ? { 
-          ...f, 
+  setFiles(prev => prev.map(f =>
+    f.id === fileId
+      ? {
+          ...f,
           metadata: { ...f.metadata, [field]: value },
           touchedFields: { ...f.touchedFields, [field]: true }
         }
@@ -347,90 +330,15 @@ const updateFileMetadata = (fileId: string, field: keyof DocumentMetadata, value
   ))
 }
 
-const updateRangeMetadata = (
-  fileId: string,
-  field: keyof DocumentMetadata,
-  value: string
-) => {
-  const parsed = toPositiveIntegerOrNull(value)
-
-  setFiles(prev => prev.map(f => {
-    if (f.id !== fileId) return f
-    const updatedMetadata: DocumentMetadata = {
-      ...f.metadata,
-      [field]: parsed,
-      subscription_agreement_skipped: false
-    }
-
-    return {
-      ...f,
-      metadata: updatedMetadata,
-      touchedFields: {
-        ...f.touchedFields,
-        [field]: true
-      }
-    }
-  }))
+const getDropdownClassName = (_uploadFile: UploadFile, _field: keyof DocumentMetadata) => {
+  // Neutral styling for optional fields
+  return "h-8 text-xs transition-colors duration-200"
 }
 
-const toggleNoSubscriptionAgreement = (fileId: string, checked: boolean) => {
-  setFiles(prev => prev.map(f => {
-    if (f.id !== fileId) return f
-
-    const updatedMetadata: DocumentMetadata = {
-      ...f.metadata,
-      subscription_agreement_skipped: checked,
-      subscription_agreement_start_page: checked ? null : f.metadata.subscription_agreement_start_page,
-      subscription_agreement_end_page: checked ? null : f.metadata.subscription_agreement_end_page
-    }
-
-    return {
-      ...f,
-      metadata: updatedMetadata,
-      touchedFields: {
-        ...f.touchedFields,
-        subscription_agreement_skipped: true
-      }
-    }
-  }))
-}
-
-const getDropdownClassName = (uploadFile: UploadFile, field: keyof DocumentMetadata) => {
-  const baseClass = "h-8 text-xs transition-colors duration-200"
-  
-  if (!uploadFile.touchedFields[field]) {
-      // Orange border when untouched
-      return `${baseClass} border-orange-300 focus:border-orange-500 focus:ring-orange-500`
-    } else {
-      // Green border when touched
-      return `${baseClass} border-green-300 focus:border-green-500 focus:ring-green-500`
-    }
-  }
-
-const isValidSubscriptionRange = (metadata: DocumentMetadata) => {
-  if (metadata.subscription_agreement_skipped) return true
-  const start = metadata.subscription_agreement_start_page
-  const end = metadata.subscription_agreement_end_page
-
-  if (start === null || end === null) return false
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return false
-  if (start < 1 || end < 1) return false
-  if (end < start) return false
-  return true
-}
-
-const isMetadataComplete = (metadata: DocumentMetadata) => {
-  return metadata.law_firm !== '' && 
-         metadata.fund_manager !== '' && 
-         metadata.fund_admin !== '' && 
-         metadata.jurisdiction !== '' &&
-         isValidSubscriptionRange(metadata)
-}
-
-  const canUpload = () => {
+const canUpload = () => {
     const pendingFiles = files.filter(f => f.status === 'pending')
-    return pendingFiles.length > 0 && 
-           pendingFiles.every(f => isMetadataComplete(f.metadata) && f.validation?.isValid !== false)
+    return pendingFiles.length > 0 &&
+           pendingFiles.every(f => f.validation?.isValid !== false)
   }
 
   const getFileStatusIcon = (uploadFile: UploadFile) => {
@@ -527,11 +435,7 @@ const isMetadataComplete = (metadata: DocumentMetadata) => {
             
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {files.map((uploadFile) => (
-                <div key={uploadFile.id} className={`border rounded-lg p-3 space-y-2.5 sm:p-4 sm:space-y-3 ${
-                  isMetadataComplete(uploadFile.metadata) 
-                    ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20' 
-                    : 'border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20'
-                }`}>
+                <div key={uploadFile.id} className="border rounded-lg p-3 space-y-2.5 sm:p-4 sm:space-y-3 border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-800/20">
                   {/* File Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -566,8 +470,8 @@ const isMetadataComplete = (metadata: DocumentMetadata) => {
                             </>
                           )}
                           
-                          {/* Metadata status */}
-                          {uploadFile.status === 'pending' && isMetadataComplete(uploadFile.metadata) && (
+                          {/* File status badge */}
+                          {uploadFile.status === 'pending' && uploadFile.validation?.isValid && (
                             <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
                               ✓ Ready
                             </Badge>
@@ -630,11 +534,13 @@ const isMetadataComplete = (metadata: DocumentMetadata) => {
                           <SearchableSelect
                             options={LAW_FIRM_OPTIONS as unknown as {value: string; label: string}[]}
                             value={uploadFile.metadata.law_firm}
-                            onValueChange={(value: string) => 
+                            onValueChange={(value: string) =>
                               updateFileMetadata(uploadFile.id, 'law_firm', value as LawFirmOption)
                             }
                             placeholder="Please select"
                             searchPlaceholder="Search law firms..."
+                            allowClear={true}
+                            emptyMessage="No law firms found"
                             className={getDropdownClassName(uploadFile, 'law_firm')}
                             data-testid="law-firm-select"
                           />
@@ -648,11 +554,13 @@ const isMetadataComplete = (metadata: DocumentMetadata) => {
                           <SearchableSelect
                             options={FUND_MANAGER_OPTIONS as unknown as {value: string; label: string}[]}
                             value={uploadFile.metadata.fund_manager}
-                            onValueChange={(value: string) => 
+                            onValueChange={(value: string) =>
                               updateFileMetadata(uploadFile.id, 'fund_manager', value as FundManagerOption)
                             }
                             placeholder="Please select"
                             searchPlaceholder="Search fund managers..."
+                            allowClear={true}
+                            emptyMessage="No fund managers found"
                             className={getDropdownClassName(uploadFile, 'fund_manager')}
                             data-testid="fund-manager-select"
                           />
@@ -666,11 +574,13 @@ const isMetadataComplete = (metadata: DocumentMetadata) => {
                           <SearchableSelect
                             options={FUND_ADMIN_OPTIONS as unknown as {value: string; label: string}[]}
                             value={uploadFile.metadata.fund_admin}
-                            onValueChange={(value: string) => 
+                            onValueChange={(value: string) =>
                               updateFileMetadata(uploadFile.id, 'fund_admin', value as FundAdminOption)
                             }
                             placeholder="Please select"
                             searchPlaceholder="Search fund admins..."
+                            allowClear={true}
+                            emptyMessage="No fund admins found"
                             className={getDropdownClassName(uploadFile, 'fund_admin')}
                             data-testid="fund-admin-select"
                           />
@@ -684,58 +594,17 @@ const isMetadataComplete = (metadata: DocumentMetadata) => {
                           <SearchableSelect
                             options={JURISDICTION_OPTIONS as unknown as {value: string; label: string}[]}
                             value={uploadFile.metadata.jurisdiction}
-                            onValueChange={(value: string) => 
+                            onValueChange={(value: string) =>
                               updateFileMetadata(uploadFile.id, 'jurisdiction', value as JurisdictionOption)
                             }
                             placeholder="Please select"
                             searchPlaceholder="Search jurisdictions..."
+                            allowClear={true}
+                            emptyMessage="No jurisdictions found"
                             className={getDropdownClassName(uploadFile, 'jurisdiction')}
                             data-testid="jurisdiction-select"
                           />
                         </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-3 text-xs">
-                        <div className="font-medium">Subscription Agreement Pages to Skip</div>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={uploadFile.metadata.subscription_agreement_start_page ?? ''}
-                          onChange={(event) =>
-                            updateRangeMetadata(
-                              uploadFile.id,
-                              'subscription_agreement_start_page',
-                              event.target.value
-                            )
-                          }
-                          className="h-8 w-20 text-xs"
-                          placeholder="From"
-                          disabled={uploadFile.metadata.subscription_agreement_skipped}
-                        />
-                        <Input
-                          type="number"
-                          min={1}
-                          value={uploadFile.metadata.subscription_agreement_end_page ?? ''}
-                          onChange={(event) =>
-                            updateRangeMetadata(
-                              uploadFile.id,
-                              'subscription_agreement_end_page',
-                              event.target.value
-                            )
-                          }
-                          className="h-8 w-20 text-xs"
-                          placeholder="To"
-                          disabled={uploadFile.metadata.subscription_agreement_skipped}
-                        />
-                        <label className="flex items-center gap-2 text-gray-600">
-                          <input
-                            type="checkbox"
-                            className="h-3 w-3"
-                            checked={uploadFile.metadata.subscription_agreement_skipped}
-                            onChange={(event) => toggleNoSubscriptionAgreement(uploadFile.id, event.target.checked)}
-                          />
-                          <span>N/A</span>
-                        </label>
                       </div>
                     </div>
                   )}
@@ -763,7 +632,7 @@ const isMetadataComplete = (metadata: DocumentMetadata) => {
                 ? 'Processing...'
                 : canUpload()
                   ? `Upload ${files.filter(f => f.status === 'pending').length} Files`
-                  : 'Complete all metadata fields to upload'
+                  : 'Add valid files to upload'
               }
             </Button>
             

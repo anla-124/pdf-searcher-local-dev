@@ -205,9 +205,7 @@ For production deployment with managed services:
 
 4.  Fill in all required environment variables in `.env.local`.
 
-5.  When uploading documents, populate the metadata card for each file (law firm, fund manager, fund admin, jurisdiction).
-    - Use the **Subscription Agreement Pages to Skip** inputs if you need to exclude a page range (e.g., 12–24).
-    - Toggle **N/A** when there is no subscription agreement section; this keeps the full document.
+5.  When uploading documents, you can optionally populate the metadata card for each file (law firm, fund manager, fund admin, jurisdiction).
 
 ### Authentication Setup
 
@@ -229,9 +227,9 @@ The application uses Supabase for authentication with different methods for loca
 
 ### Upload Workflow
 
-1. **Add files:** drag-and-drop or browse for PDFs (10 max per batch, 50&nbsp;MB each). Non-PDF files are rejected up front.  
-2. **Validation:** every file runs through basic checks (page count, size, metadata completeness). Failed validations are flagged before upload.  
-3. **Metadata form:** fill in law firm, fund manager, fund admin, jurisdiction, and optionally provide a subscription agreement skip range. When the range is supplied, those pages are removed before chunking; choosing “N/A” skips the exclusion.  
+1. **Add files:** drag-and-drop or browse for PDFs (10 max per batch, 50&nbsp;MB each). Non-PDF files are rejected up front.
+2. **Validation:** every file runs through basic checks (page count, size). Failed validations are flagged before upload.
+3. **Metadata form (optional):** you can optionally provide law firm, fund manager, fund admin, and jurisdiction for each document.  
 4. **Upload:** press “Upload” to send the files. The UI shows progress, and each file transitions through `pending → uploading → processing → completed/error`.  
 5. **Storage & records:** every PDF is stored in Supabase Storage; a corresponding record is created in the `documents` table with the metadata payload.  
 6. **Processing jobs:** each document queues a processing job unless the pipeline can start immediately (tiny documents on paid tiers). The cron endpoint is auto-triggered so background processing begins right away.  
@@ -300,7 +298,7 @@ The production similarity endpoint (`/api/documents/[id]/similar-v2`) and the Se
    - Skipped automatically when the candidate pool is already small.
 
 3. **Stage 2 – Adaptive scoring with sections**
-   - Fetches the full chunk sets for each candidate, respecting manual exclusions such as subscription agreement skip ranges.
+   - Fetches the full chunk sets for each candidate.
    - Performs bidirectional matching with non-max suppression and minimum evidence thresholds.
    - Computes character-based scores using `computeAdaptiveScore`, returning:
      - `sourceScore`: fraction of source characters matched.

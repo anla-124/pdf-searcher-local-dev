@@ -532,8 +532,5 @@ export const DEFAULT_METADATA = {
   law_firm: '' as LawFirmOption | '',
   fund_manager: '' as FundManagerOption | '',
   fund_admin: '' as FundAdminOption | '',
-  jurisdiction: '' as JurisdictionOption | '',
-  subscription_agreement_skipped: false,
-  subscription_agreement_start_page: null,
-  subscription_agreement_end_page: null
+  jurisdiction: '' as JurisdictionOption | ''
 }

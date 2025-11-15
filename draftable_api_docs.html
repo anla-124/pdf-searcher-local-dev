@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" class="ng">
+<head>
+    
+  
+        <!-- Basic -->
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+        <title>Compare API Documentation - Draftable</title>
+
+        <!-- Favicon -->
+        
+        <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+        <link rel="icon" href="/static/favicon-16x16.png" type="image/png" sizes="16x16">
+        <link rel="icon" href="/static/favicon-32x32.png" type="image/png" sizes="32x32">
+        
+        <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+
+        <!-- Mobile Metas -->
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <!-- Web Fonts  -->
+        <link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700,800%7CShadows+Into+Light" rel="stylesheet" type="text/css">
+
+        
+          
+        <!-- Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-40148633-5"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+
+            gtag('js', new Date());
+
+            gtag('config', 'UA-40148633-5');
+        </script>
+
+          <!-- Google Tag Manager -->
+          <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+          })(window,document,'script','dataLayer','GTM-MBHCQCM');</script>
+          <!-- End Google Tag Manager -->
+
+          <script>
+            (function () {
+              var zi = document.createElement('script');
+              zi.type = 'text/javascript';
+              zi.async = true;
+              zi.src = 'https://ws.zoominfo.com/pixel/sxLdu2OiA4pjTpMv49m4';
+              var s = document.getElementsByTagName('script')[0];
+              s.parentNode.insertBefore(zi, s);
+            })();
+          </script>
+          <noscript>
+            <img src="https://ws.zoominfo.com/pixel/sxLdu2OiA4pjTpMv49m4" width="1" height="1" style="display: none;" />
+          </noscript>
+
+          <!-- Facebook Pixel Code -->
+          <script>
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', '1563579047165615');
+          fbq('track', 'PageView');
+          </script>
+          <noscript><img height="1" width="1" style="display:none"
+          src="https://www.facebook.com/tr?id=1563579047165615&ev=PageView&noscript=1"
+          /></noscript>
+          <!-- End Facebook Pixel Code -->
+
+          <!-- Pardot Code -->
+          <script type="text/javascript">
+            piAId = '942953';
+            piCId = '';
+            piHostname = 'go.draftable.com';
+
+            (function() {
+              function async_load(){
+                var s = document.createElement('script'); s.type = 'text/javascript';
+                s.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + piHostname + '/pd.js';
+                var c = document.getElementsByTagName('script')[0]; c.parentNode.insertBefore(s, c);
+              }
+              if(window.attachEvent) { window.attachEvent('onload', async_load); }
+              else { window.addEventListener('load', async_load, false); }
+            })();
+          </script>
+          <!-- End Pardot Code -->
+          
+          
+
+
+        
+        <meta name="author" content="Draftable">
+        <meta name="description" content="Draftable API lets you integrate our powerful document comparison technologies into your app. Sign-up for a free API key and start integrating within minutes.">
+        <meta name="keywords" content="compare documents, document comparison, pdf comparison, docx comparison, pptx comparison, compare pdf, compare powerpoint, compare word, draftable, free online compare">
+        
+
+        
+            
+            <script src="/static/js/vendor/raven.modified.js"></script>
+
+            <script type="text/javascript">
+                window.App = {};
+                window.Settings = {"SENTRY_ENABLED": true, "SENTRY_DSN_PUBLIC": "https:\/\/d0da91163a0240838b03b04c67ca5f94:397855f31ac74ca4bed014e869470d5e@sentry.draftable.com\/8"};
+                window.FromServer = {"basePath": "", "credentials": null, "user": null, "urls": {"originWeb": "https:\/\/draftable.com", "originApi": "https:\/\/api.draftable.com", "accountRegister": "https:\/\/api.draftable.com\/account\/login", "accountLogin": "https:\/\/api.draftable.com\/account\/login", "accountLogout": "https:\/\/api.draftable.com\/account\/logout", "accountLoginWithNext": "https:\/\/api.draftable.com\/account\/login?next=", "accountLogoutWithNext": "https:\/\/api.draftable.com\/account\/logout?next=", "webHome": "https:\/\/draftable.com\/", "emailApi": "mailto:sales@draftable.com", "emailSupport": "mailto:support@draftable.com", "example": "https:\/\/api.draftable.com\/v1\/comparisons\/viewer\/TkiHPZ-test\/code-of-conduct", "exampleCodeOfConduct": "https:\/\/api.draftable.com\/v1\/comparisons\/viewer\/TkiHPZ-test\/code-of-conduct", "examplePaper": "https:\/\/api.draftable.com\/v1\/comparisons\/viewer\/TkiHPZ-test\/scientific-paper", "examplePatentsAct": "https:\/\/api.draftable.com\/v1\/comparisons\/viewer\/TkiHPZ-test\/patents-act", "examplePresentation": "https:\/\/api.draftable.com\/v1\/comparisons\/viewer\/TkiHPZ-test\/presentation", "exampleAnnualReport": "https:\/\/api.draftable.com\/v1\/comparisons\/viewer\/TkiHPZ-test\/annual-report", "apiHome": "https:\/\/api.draftable.com\/", "apiDocumentation": "https:\/\/api.draftable.com\/", "apiWelcome": "https:\/\/api.draftable.com\/", "apiIntroduction": "https:\/\/api.draftable.com\/introduction", "apiExamples": "https:\/\/api.draftable.com\/examples", "apiExplorer": "https:\/\/api.draftable.com\/api-explorer", "apiComparisonLifecycle": "https:\/\/api.draftable.com\/reference\/comparison-lifecycle", "apiCreatingComparisons": "https:\/\/api.draftable.com\/reference\/creating-comparisons", "apiSubmittingComparisons": "https:\/\/api.draftable.com\/reference\/submitting-comparisons", "apiComparisonViewer": "https:\/\/api.draftable.com\/reference\/comparison-viewer", "apiAuthentication": "https:\/\/api.draftable.com\/reference\/authentication", "apiAsynchronousUsage": "https:\/\/api.draftable.com\/reference\/asynchronous-usage", "apiComparisonSpeeds": "https:\/\/api.draftable.com\/reference\/comparison-speeds", "apiExportingComparisons": "https:\/\/api.draftable.com\/reference\/exporting-comparisons", "apiUsageQuotas": "https:\/\/api.draftable.com\/reference\/usage-quotas", "apiClientLibraries": "https:\/\/api.draftable.com\/reference\/client-libraries", "apiViewer": "https:\/\/api.draftable.com\/v1\/comparisons\/viewer", "reactApiBasePath": "", "accountHome": "https:\/\/api.draftable.com\/account\/home", "accountCredentials": "https:\/\/api.draftable.com\/account\/credentials", "accountCustomizations": "https:\/\/api.draftable.com\/account\/customizations", "accountBilling": "https:\/\/api.draftable.com\/account\/billing", "accountPlans": "https:\/\/api.draftable.com\/account\/plans", "accountExampleTheme": "https:\/\/api.draftable.com\/account\/files\/exampleTheme.css", "reactAccountBasePath": "\/account"}};
+                if (Settings.SENTRY_ENABLED) {
+                    Raven.config(Settings.SENTRY_DSN_PUBLIC);
+                    Raven.install();
+                }
+            </script>
+        
+
+        
+    
+        
+    
+    
+        
+            <link rel="stylesheet" crossorigin href="/static/web-assets/api-documentation1.0.0/api-documentation.b7082a7a.css" />
+        
+    
+    
+        
+            
+                <script type="module" crossorigin src="/static/web-assets/api-documentation1.0.0/api-documentation.c3f4792d.js"></script>
+            
+        
+    
+
+
+
+        
+        
+
+        
+            
+        
+    
+
+</head>
+
+<body>
+
+  
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MBHCQCM"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+  
+<div role="main" id="main">
+    
+    <div id="root"></div>
+
+</div>
+  
+    
+          <script type="text/javascript">
+      _linkedin_partner_id = "2782892";
+      window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
+      window._linkedin_data_partner_ids.push(_linkedin_partner_id);
+      </script><script type="text/javascript">
+      (function(){var s = document.getElementsByTagName("script")[0];
+      var b = document.createElement("script");
+      b.type = "text/javascript";b.async = true;
+      b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
+      s.parentNode.insertBefore(b, s);})();
+      </script>
+      <noscript>
+      <img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=2782892&fmt=gif" />
+      </noscript>
+      <!-- Hotjar Tracking Code for www.draftable.com -->
+      <script>
+          (function(h,o,t,j,a,r){
+              h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+              h._hjSettings={hjid:2119514,hjsv:6};
+              a=o.getElementsByTagName('head')[0];
+              r=o.createElement('script');r.async=1;
+              r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+              a.appendChild(r);
+          })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+      </script>
+      
+    
+
+
+
+    
+
+
+
+</body>

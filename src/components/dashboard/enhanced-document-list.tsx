@@ -29,7 +29,6 @@ import {
   MoreVertical,
   Trash2,
   X,
-  Eye,
   Edit,
   Edit2,
   Building,
@@ -57,6 +56,7 @@ import { format } from 'date-fns'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { clientLogger } from '@/lib/client-logger'
 import { viewDocument, downloadDocument } from '@/lib/document-actions'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 
 interface DocumentListProps {
   refreshTrigger?: number
@@ -149,6 +149,17 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
 
   // Enhanced processing status tracking
   const [documentStatuses, setDocumentStatuses] = useState<Map<string, DocumentStatus>>(new Map())
+
+  // Resizable columns
+  const { columnWidths, handleMouseDown } = useResizableColumns({
+    checkbox: 48,
+    name: 500,
+    metadata: 192,
+    pages: 80,
+    lastModified: 176,
+    created: 176,
+    actions: 208
+  })
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -766,15 +777,19 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
         doc.status === statusFilter
 
       const matchesLawFirm = lawFirmFilter.length === 0 ||
+        (lawFirmFilter.includes('(blank)') && !doc.metadata?.law_firm) ||
         (doc.metadata?.law_firm && lawFirmFilter.includes(doc.metadata.law_firm))
 
       const matchesFundManager = fundManagerFilter.length === 0 ||
+        (fundManagerFilter.includes('(blank)') && !doc.metadata?.fund_manager) ||
         (doc.metadata?.fund_manager && fundManagerFilter.includes(doc.metadata.fund_manager))
 
       const matchesFundAdmin = fundAdminFilter.length === 0 ||
+        (fundAdminFilter.includes('(blank)') && !doc.metadata?.fund_admin) ||
         (doc.metadata?.fund_admin && fundAdminFilter.includes(doc.metadata.fund_admin))
 
       const matchesJurisdiction = jurisdictionFilter.length === 0 ||
+        (jurisdictionFilter.includes('(blank)') && !doc.metadata?.jurisdiction) ||
         (doc.metadata?.jurisdiction && jurisdictionFilter.includes(doc.metadata.jurisdiction))
 
       return matchesSearch && matchesStatus && matchesLawFirm &&
@@ -793,6 +808,9 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
           break
         case 'title':
           comparison = a.title.localeCompare(b.title)
+          break
+        case 'page_count':
+          comparison = (a.page_count ?? 0) - (b.page_count ?? 0)
           break
         default:
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -869,15 +887,19 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
         doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchesLawFirm = lawFirmFilter.length === 0 ||
+        (lawFirmFilter.includes('(blank)') && !doc.metadata?.law_firm) ||
         (doc.metadata?.law_firm && lawFirmFilter.includes(doc.metadata.law_firm))
 
       const matchesFundManager = fundManagerFilter.length === 0 ||
+        (fundManagerFilter.includes('(blank)') && !doc.metadata?.fund_manager) ||
         (doc.metadata?.fund_manager && fundManagerFilter.includes(doc.metadata.fund_manager))
 
       const matchesFundAdmin = fundAdminFilter.length === 0 ||
+        (fundAdminFilter.includes('(blank)') && !doc.metadata?.fund_admin) ||
         (doc.metadata?.fund_admin && fundAdminFilter.includes(doc.metadata.fund_admin))
 
       const matchesJurisdiction = jurisdictionFilter.length === 0 ||
+        (jurisdictionFilter.includes('(blank)') && !doc.metadata?.jurisdiction) ||
         (doc.metadata?.jurisdiction && jurisdictionFilter.includes(doc.metadata.jurisdiction))
 
       return matchesSearch && matchesLawFirm && matchesFundManager && matchesFundAdmin && matchesJurisdiction
@@ -1041,7 +1063,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                   Law Firm
                 </Label>
                 <SearchableMultiSelect
-                  options={[...LAW_FIRM_OPTIONS]}
+                  options={[...LAW_FIRM_OPTIONS, { value: '(blank)', label: '(blank)' }]}
                   values={lawFirmFilter}
                   onValuesChange={setLawFirmFilter}
                   placeholder="Select law firms..."
@@ -1056,7 +1078,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                   Fund Manager
                 </Label>
                 <SearchableMultiSelect
-                  options={[...FUND_MANAGER_OPTIONS]}
+                  options={[...FUND_MANAGER_OPTIONS, { value: '(blank)', label: '(blank)' }]}
                   values={fundManagerFilter}
                   onValuesChange={setFundManagerFilter}
                   placeholder="Select fund managers..."
@@ -1071,7 +1093,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                   Fund Admin
                 </Label>
                 <SearchableMultiSelect
-                  options={[...FUND_ADMIN_OPTIONS]}
+                  options={[...FUND_ADMIN_OPTIONS, { value: '(blank)', label: '(blank)' }]}
                   values={fundAdminFilter}
                   onValuesChange={setFundAdminFilter}
                   placeholder="Select fund admins..."
@@ -1086,7 +1108,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                   Jurisdiction
                 </Label>
                 <SearchableMultiSelect
-                  options={[...JURISDICTION_OPTIONS]}
+                  options={[...JURISDICTION_OPTIONS, { value: '(blank)', label: '(blank)' }]}
                   values={jurisdictionFilter}
                   onValuesChange={setJurisdictionFilter}
                   placeholder="Select jurisdictions..."
@@ -1124,16 +1146,17 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
               <Card className="card-enhanced">
                 <Table>
                   <colgroup>
-                    <col className="w-12" />
-                    <col />
-                    <col className="w-48" />
-                    <col className="w-44" />
-                    <col className="w-44" />
-                    <col className="w-52" />
+                    <col style={{ width: `${columnWidths.checkbox}px` }} />
+                    <col style={{ width: `${columnWidths.name}px` }} />
+                    <col style={{ width: `${columnWidths.metadata}px` }} />
+                    <col style={{ width: `${columnWidths.pages}px` }} />
+                    <col style={{ width: `${columnWidths.lastModified}px` }} />
+                    <col style={{ width: `${columnWidths.created}px` }} />
+                    <col style={{ width: `${columnWidths.actions}px` }} />
                   </colgroup>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted">
-                      <TableHead className="w-12 h-10 py-2 rounded-tl-xl">
+                      <TableHead className="h-10 py-2 rounded-tl-xl" style={{ width: `${columnWidths.checkbox}px` }}>
                         <Checkbox
                           checked={selectedDocuments.size === paginatedDocuments.length && paginatedDocuments.length > 0}
                           onCheckedChange={toggleAllDocuments}
@@ -1141,8 +1164,9 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                         />
                       </TableHead>
                       <TableHead
-                        className="cursor-pointer hover:bg-muted/50 h-10 py-2 border-r border-gray-300 dark:border-gray-700"
+                        className="cursor-pointer hover:bg-muted/50 h-10 py-2 border-r border-gray-300 dark:border-gray-700 relative group"
                         onClick={() => handleSort('title')}
+                        style={{ width: `${columnWidths.name}px` }}
                       >
                         <div className="flex items-center gap-2">
                           Name
@@ -1152,13 +1176,46 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                             <ArrowUpDown className="h-4 w-4 opacity-50" />
                           )}
                         </div>
+                        <div
+                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gray-400 dark:hover:bg-gray-500"
+                          onMouseDown={(e) => {
+                            e.stopPropagation()
+                            handleMouseDown(e, 'name')
+                          }}
+                        />
                       </TableHead>
-                      <TableHead className="w-48 h-10 py-2 border-r border-gray-300 dark:border-gray-700">
+                      <TableHead className="h-10 py-2 border-r border-gray-300 dark:border-gray-700 relative group" style={{ width: `${columnWidths.metadata}px` }}>
                         Metadata
+                        <div
+                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gray-400 dark:hover:bg-gray-500"
+                          onMouseDown={(e) => handleMouseDown(e, 'metadata')}
+                        />
                       </TableHead>
                       <TableHead
-                        className="cursor-pointer hover:bg-muted/50 w-44 h-10 py-2 border-r border-gray-300 dark:border-gray-700"
+                        className="cursor-pointer hover:bg-muted/50 h-10 py-2 border-r border-gray-300 dark:border-gray-700 relative group"
+                        onClick={() => handleSort('page_count')}
+                        style={{ width: `${columnWidths.pages}px` }}
+                      >
+                        <div className="flex items-center gap-2">
+                          Pages
+                          {sortBy === 'page_count' ? (
+                            sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                          ) : (
+                            <ArrowUpDown className="h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                        <div
+                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gray-400 dark:hover:bg-gray-500"
+                          onMouseDown={(e) => {
+                            e.stopPropagation()
+                            handleMouseDown(e, 'pages')
+                          }}
+                        />
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50 h-10 py-2 border-r border-gray-300 dark:border-gray-700 relative group"
                         onClick={() => handleSort('updated_at')}
+                        style={{ width: `${columnWidths.lastModified}px` }}
                       >
                         <div className="flex items-center gap-2">
                           Last Modified
@@ -1168,10 +1225,18 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                             <ArrowUpDown className="h-4 w-4 opacity-50" />
                           )}
                         </div>
+                        <div
+                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gray-400 dark:hover:bg-gray-500"
+                          onMouseDown={(e) => {
+                            e.stopPropagation()
+                            handleMouseDown(e, 'lastModified')
+                          }}
+                        />
                       </TableHead>
                       <TableHead
-                        className="cursor-pointer hover:bg-muted/50 w-44 h-10 py-2"
+                        className="cursor-pointer hover:bg-muted/50 h-10 py-2 relative group"
                         onClick={() => handleSort('created_at')}
+                        style={{ width: `${columnWidths.created}px` }}
                       >
                         <div className="flex items-center gap-2">
                           Created
@@ -1181,8 +1246,15 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                             <ArrowUpDown className="h-4 w-4 opacity-50" />
                           )}
                         </div>
+                        <div
+                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gray-400 dark:hover:bg-gray-500"
+                          onMouseDown={(e) => {
+                            e.stopPropagation()
+                            handleMouseDown(e, 'created')
+                          }}
+                        />
                       </TableHead>
-                      <TableHead className="text-right w-52 h-10 py-2 rounded-tr-xl" aria-label="Actions"></TableHead>
+                      <TableHead className="text-right h-10 py-2 rounded-tr-xl" aria-label="Actions" style={{ width: `${columnWidths.actions}px` }}></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1216,9 +1288,18 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-gray-900 dark:text-white truncate">
-                                    {document.title}
-                                  </span>
+                                  {document.status === 'completed' ? (
+                                    <button
+                                      onClick={() => viewDocument(document)}
+                                      className="font-medium text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 truncate text-left cursor-pointer"
+                                    >
+                                      {document.title}
+                                    </button>
+                                  ) : (
+                                    <span className="font-medium text-gray-900 dark:text-white truncate">
+                                      {document.title}
+                                    </span>
+                                  )}
                                   {isSource && (
                                     <Badge variant="outline" className="border-emerald-500 text-emerald-600">
                                       <Target className="h-3 w-3 mr-1" />
@@ -1245,36 +1326,47 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
 
                           {/* Metadata Column */}
                           <TableCell>
-                            {(document.metadata?.law_firm || document.metadata?.fund_manager || document.metadata?.fund_admin || document.metadata?.jurisdiction) ? (
-                              <div className="flex flex-col gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                                {document.metadata?.law_firm && (
-                                  <div className="flex items-center gap-1.5">
-                                    <Building className="h-3 w-3 flex-shrink-0 text-gray-400" />
-                                    <span className="truncate">{resolveOptionLabel(document.metadata?.law_firm ?? '', LAW_FIRM_OPTIONS)}</span>
-                                  </div>
-                                )}
-                                {document.metadata?.fund_manager && (
-                                  <div className="flex items-center gap-1.5">
-                                    <Users className="h-3 w-3 flex-shrink-0 text-gray-400" />
-                                    <span className="truncate">{resolveOptionLabel(document.metadata?.fund_manager ?? '', FUND_MANAGER_OPTIONS)}</span>
-                                  </div>
-                                )}
-                                {document.metadata?.fund_admin && (
-                                  <div className="flex items-center gap-1.5">
-                                    <Briefcase className="h-3 w-3 flex-shrink-0 text-gray-400" />
-                                    <span className="truncate">{resolveOptionLabel(document.metadata?.fund_admin ?? '', FUND_ADMIN_OPTIONS)}</span>
-                                  </div>
-                                )}
-                                {document.metadata?.jurisdiction && (
-                                  <div className="flex items-center gap-1.5">
-                                    <Globe className="h-3 w-3 flex-shrink-0 text-gray-400" />
-                                    <span className="truncate">{resolveOptionLabel(document.metadata?.jurisdiction ?? '', JURISDICTION_OPTIONS)}</span>
-                                  </div>
+                            <div className="flex flex-col gap-1.5 text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <Building className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                {document.metadata?.law_firm ? (
+                                  <span className="truncate text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata.law_firm, LAW_FIRM_OPTIONS)}</span>
+                                ) : (
+                                  <span className="truncate text-orange-500 dark:text-orange-400">(blank)</span>
                                 )}
                               </div>
-                            ) : (
-                              <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
-                            )}
+                              <div className="flex items-center gap-1.5">
+                                <Users className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                {document.metadata?.fund_manager ? (
+                                  <span className="truncate text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata.fund_manager, FUND_MANAGER_OPTIONS)}</span>
+                                ) : (
+                                  <span className="truncate text-orange-500 dark:text-orange-400">(blank)</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Briefcase className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                {document.metadata?.fund_admin ? (
+                                  <span className="truncate text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata.fund_admin, FUND_ADMIN_OPTIONS)}</span>
+                                ) : (
+                                  <span className="truncate text-orange-500 dark:text-orange-400">(blank)</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Globe className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                {document.metadata?.jurisdiction ? (
+                                  <span className="truncate text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata.jurisdiction, JURISDICTION_OPTIONS)}</span>
+                                ) : (
+                                  <span className="truncate text-orange-500 dark:text-orange-400">(blank)</span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          {/* Pages Column */}
+                          <TableCell>
+                            <div className="text-xs text-gray-600 dark:text-gray-300">
+                              {document.page_count ?? '-'}
+                            </div>
                           </TableCell>
 
                           {/* Last Modified Column */}
@@ -1297,15 +1389,6 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                               {/* Primary Action Buttons */}
                               {document.status === 'completed' && (
                                 <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => viewDocument(document)}
-                                    className="h-8 button-brighter"
-                                  >
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    View
-                                  </Button>
                                   {document.metadata?.embeddings_skipped ? (
                                     <Button
                                       size="sm"

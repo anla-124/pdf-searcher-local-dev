@@ -301,37 +301,40 @@ export function SelectedSearchInterface({ sourceDocument, autoSearchTargets }: S
                               <span>{formatPageCount(result.document.page_count)}</span>
                             )}
                           </div>
-                          {(result.document.metadata?.law_firm ||
-                            result.document.metadata?.fund_manager ||
-                            result.document.metadata?.fund_admin ||
-                            result.document.metadata?.jurisdiction) && (
-                            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-300">
-                              {result.document.metadata?.law_firm && (
-                                <div className="flex items-center gap-1">
-                                  <Building className="h-3 w-3" />
-                                  {result.document.metadata.law_firm}
-                                </div>
-                              )}
-                              {result.document.metadata?.fund_manager && (
-                                <div className="flex items-center gap-1">
-                                  <Users className="h-3 w-3" />
-                                  {result.document.metadata.fund_manager}
-                                </div>
-                              )}
-                              {result.document.metadata?.fund_admin && (
-                                <div className="flex items-center gap-1">
-                                  <Briefcase className="h-3 w-3" />
-                                  {result.document.metadata.fund_admin}
-                                </div>
-                              )}
-                              {result.document.metadata?.jurisdiction && (
-                                <div className="flex items-center gap-1">
-                                  <Globe className="h-3 w-3" />
-                                  {result.document.metadata.jurisdiction}
-                                </div>
+                          <div className="flex flex-wrap items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1">
+                              <Building className="h-3 w-3 text-gray-400" />
+                              {result.document.metadata?.law_firm ? (
+                                <span className="text-gray-600 dark:text-gray-300">{result.document.metadata.law_firm}</span>
+                              ) : (
+                                <span className="text-orange-500 dark:text-orange-400">(blank)</span>
                               )}
                             </div>
-                          )}
+                            <div className="flex items-center gap-1">
+                              <Users className="h-3 w-3 text-gray-400" />
+                              {result.document.metadata?.fund_manager ? (
+                                <span className="text-gray-600 dark:text-gray-300">{result.document.metadata.fund_manager}</span>
+                              ) : (
+                                <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Briefcase className="h-3 w-3 text-gray-400" />
+                              {result.document.metadata?.fund_admin ? (
+                                <span className="text-gray-600 dark:text-gray-300">{result.document.metadata.fund_admin}</span>
+                              ) : (
+                                <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Globe className="h-3 w-3 text-gray-400" />
+                              {result.document.metadata?.jurisdiction ? (
+                                <span className="text-gray-600 dark:text-gray-300">{result.document.metadata.jurisdiction}</span>
+                              ) : (
+                                <span className="text-orange-500 dark:text-orange-400">(blank)</span>
+                              )}
+                            </div>
+                          </div>
                           <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                             <Badge className={`${getScoreBadgeColor(targetScore)} text-xs`}>
                               Target: {(targetScore * 100).toFixed(0)}%

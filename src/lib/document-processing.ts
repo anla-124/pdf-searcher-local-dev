@@ -72,13 +72,6 @@ export interface DocumentProcessingMetrics {
     type: string
   }
   estimatedProcessingSeconds: number
-  excludedSections?: {
-    type: string
-    startPage: number
-    endPage: number
-    pageCount: number
-    confidence?: number
-  }[]
 }
 
 export interface ProcessDocumentResult {
@@ -96,12 +89,6 @@ interface ProcessedDocumentData {
 
 interface SaveProcessedDocumentResult {
   embeddingStats: EmbeddingGenerationStats
-  excludedSection: {
-    type: 'subscription_agreement'
-    startPage: number
-    endPage: number
-    pageCount: number
-  } | null
 }
 
 type DocumentAIKeyValuePair = {
@@ -616,7 +603,7 @@ export async function processDocument(documentId: string): Promise<ProcessDocume
         await updateProcessingStatus(documentId, 'processing', 80, 'Generating embeddings...')
         logger.logDocumentProcessing('embedding-generation', documentId, 'started', { progress: 80 })
 
-        const { embeddingStats, excludedSection } = await saveProcessedDocumentData(
+        const { embeddingStats } = await saveProcessedDocumentData(
           supabase,
           documentId,
           processedData,
@@ -654,15 +641,6 @@ export async function processDocument(documentId: string): Promise<ProcessDocume
             type: optimalProcessor
           },
           estimatedProcessingSeconds: timeEstimate.estimatedMinutes * 60
-        }
-
-        if (excludedSection) {
-          metrics.excludedSections = [{
-            type: excludedSection.type,
-            startPage: excludedSection.startPage,
-            endPage: excludedSection.endPage,
-            pageCount: excludedSection.pageCount
-          }]
         }
 
         return { switchedToBatch: false, metrics } // Successful sync processing
@@ -1057,82 +1035,6 @@ async function processChunkWithRetry(
   }
 }
 
-function getManualSubscriptionRange(
-  metadata: Record<string, unknown> | null | undefined
-): { startPage: number; endPage: number } | null {
-  if (!metadata) return null
-
-  if (metadata['subscription_agreement_skipped'] === true) {
-    return null
-  }
-
-  const startValue = metadata['subscription_agreement_start_page']
-  const endValue = metadata['subscription_agreement_end_page']
-
-  const start = typeof startValue === 'number' ? startValue : Number(startValue)
-  const end = typeof endValue === 'number' ? endValue : Number(endValue)
-
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return null
-
-  const startPage = Math.floor(start)
-  const endPage = Math.floor(end)
-
-  if (startPage < 1 || endPage < 1 || endPage < startPage) {
-    return null
-  }
-
-  return { startPage, endPage }
-}
-
-function applyManualExclusions(
-  pagesText: { text: string; pageNumber: number }[],
-  range: { startPage: number; endPage: number } | null
-): {
-  filteredPages: { text: string; pageNumber: number }[]
-  exclusion: {
-    type: 'subscription_agreement'
-    startPage: number
-    endPage: number
-    pageCount: number
-    pageNumbers: number[]
-  } | null
-} {
-  if (!range) {
-    return { filteredPages: pagesText, exclusion: null }
-  }
-
-  const excludedPageNumbers = pagesText
-    .filter(page => page.pageNumber >= range.startPage && page.pageNumber <= range.endPage)
-    .map(page => page.pageNumber)
-
-  if (excludedPageNumbers.length === 0) {
-    return { filteredPages: pagesText, exclusion: null }
-  }
-
-  const filteredPages = pagesText.filter(
-    page => page.pageNumber < range.startPage || page.pageNumber > range.endPage
-  )
-
-  if (filteredPages.length === 0) {
-    logger.warn('Manual subscription agreement range excludes all pages; ignoring exclusion', {
-      range,
-      totalPages: pagesText.length
-    })
-    return { filteredPages: pagesText, exclusion: null }
-  }
-
-  return {
-    filteredPages,
-    exclusion: {
-      type: 'subscription_agreement',
-      startPage: range.startPage,
-      endPage: range.endPage,
-      pageCount: excludedPageNumbers.length,
-      pageNumbers: excludedPageNumbers
-    }
-  }
-}
-
 async function saveProcessedDocumentData(
   supabase: SupabaseClient<GenericSupabaseSchema>,
   documentId: string,
@@ -1141,89 +1043,12 @@ async function saveProcessedDocumentData(
   sizeAnalysis?: DocumentSizeAnalysis,
   documentAIResponse?: DocumentAIDocument | null
 ): Promise<SaveProcessedDocumentResult> {
-  const existingMetadata = {
-    ...(documentRecord.metadata ?? {})
-  } as BusinessMetadata
-  const manualRange = getManualSubscriptionRange(existingMetadata as Record<string, unknown>)
-  const { filteredPages, exclusion } = applyManualExclusions(processedData.pagesText, manualRange)
-  const pagesForEmbedding = filteredPages.length > 0 ? filteredPages : processedData.pagesText
+  const pagesForEmbedding = processedData.pagesText
 
-  const normalizedAllParagraphs = processedData.paragraphs.map((paragraph, index) => ({
+  const paragraphsForEmbedding = processedData.paragraphs.map((paragraph, index) => ({
     ...paragraph,
     index
   }))
-
-  let paragraphsForEmbedding = normalizedAllParagraphs
-
-  if (exclusion && exclusion.pageNumbers?.length) {
-    const excludedPages = new Set<number>(exclusion.pageNumbers)
-    const filteredParagraphs = normalizedAllParagraphs.filter(paragraph => !excludedPages.has(paragraph.pageNumber))
-
-    if (filteredParagraphs.length > 0) {
-      paragraphsForEmbedding = filteredParagraphs.map((paragraph, index) => ({
-        ...paragraph,
-        index
-      }))
-    } else {
-      logger.warn('Paragraph filtering removed all content; falling back to full document paragraphs', {
-        documentId,
-        excludedPages: Array.from(excludedPages)
-      })
-    }
-  }
-
-  if (exclusion) {
-    logger.info('Applying manual subscription agreement exclusion', {
-      documentId,
-      startPage: exclusion.startPage,
-      endPage: exclusion.endPage,
-      pageCount: exclusion.pageCount
-    })
-  } else if (manualRange) {
-    logger.warn('Manual subscription agreement range provided but no pages were excluded', {
-      documentId,
-      range: manualRange
-    })
-  }
-
-  let metadataUpdate: BusinessMetadata | undefined
-
-  if (exclusion) {
-    const currentSectionsSource = existingMetadata.excluded_sections
-    const currentSections = Array.isArray(currentSectionsSource)
-      ? currentSectionsSource.filter((section): section is Record<string, unknown> => {
-          if (!section || typeof section !== 'object') {
-            return false
-          }
-          const sectionType = (section as { type?: unknown }).type
-          return sectionType !== 'subscription_agreement'
-        })
-      : []
-
-    const subscriptionSection = {
-      type: 'subscription_agreement',
-      start_page: exclusion.startPage,
-      end_page: exclusion.endPage,
-      page_count: exclusion.pageCount,
-      excluded_page_numbers: exclusion.pageNumbers,
-      supplied_via: 'user-input',
-      updated_at: new Date().toISOString()
-    }
-
-    metadataUpdate = {
-      ...existingMetadata,
-      excluded_sections: [...currentSections, subscriptionSection],
-      subscription_agreement: {
-        excluded: true,
-        start_page: exclusion.startPage,
-        end_page: exclusion.endPage,
-        excluded_pages_count: exclusion.pageCount,
-        supplied_via: 'user-input'
-      }
-    }
-
-    documentRecord.metadata = metadataUpdate
-  }
 
   const processingMetadata = {
     fields: processedData.structuredData.fields,
@@ -1234,18 +1059,13 @@ async function saveProcessedDocumentData(
       features: PROCESSING_FEATURES,
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development'
-    },
-    excluded_sections: metadataUpdate?.excluded_sections
+    }
   }
 
   const documentUpdate: Record<string, unknown> = {
     extracted_fields: processingMetadata,
     page_count: processedData.pageCount,
     status: 'processing'
-  }
-
-  if (metadataUpdate) {
-    documentUpdate.metadata = metadataUpdate
   }
 
   const { error: updateError } = await supabase
@@ -1291,8 +1111,7 @@ async function saveProcessedDocumentData(
   )
 
   return {
-    embeddingStats,
-    excludedSection: exclusion
+    embeddingStats
   }
 }
 
@@ -1475,7 +1294,7 @@ async function processDocumentWithChunks(params: ChunkProcessingParams) {
   await updateProcessingStatus(documentId, 'processing', 80, 'Generating embeddings from chunks...')
   logger.logDocumentProcessing('embedding-generation', documentId, 'started', { progress: 80 })
 
-  const { embeddingStats, excludedSection } = await saveProcessedDocumentData(
+  const { embeddingStats } = await saveProcessedDocumentData(
     supabase,
     documentId,
     chunkedData,
@@ -1513,15 +1332,6 @@ async function processDocumentWithChunks(params: ChunkProcessingParams) {
       type: `${processorType}-chunked`
     },
     estimatedProcessingSeconds: timeEstimate.estimatedMinutes * 60
-  }
-
-  if (excludedSection) {
-    metrics.excludedSections = [{
-      type: excludedSection.type,
-      startPage: excludedSection.startPage,
-      endPage: excludedSection.endPage,
-      pageCount: excludedSection.pageCount
-    }]
   }
 
   logger.info('Chunked processing completed successfully', {

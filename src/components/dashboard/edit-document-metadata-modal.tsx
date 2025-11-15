@@ -82,15 +82,8 @@ export function EditDocumentMetadataModal({
     }
   }
 
-  const isMetadataComplete = () => {
-    return metadata.law_firm !== '' && 
-           metadata.fund_manager !== '' && 
-           metadata.fund_admin !== '' && 
-           metadata.jurisdiction !== ''
-  }
-
   const handleSave = async () => {
-    if (!currentDocument || !isMetadataComplete()) return
+    if (!currentDocument) return
 
     setIsLoading(true)
     setError('')
@@ -242,7 +235,7 @@ export function EditDocumentMetadataModal({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={!isMetadataComplete() || isLoading}
+            disabled={isLoading}
             className="flex-1 sm:flex-none"
           >
             {isLoading ? (

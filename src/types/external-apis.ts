@@ -884,17 +884,6 @@ export interface BusinessMetadata {
     embedding_model?: string
     embedding_dimensions?: number
   }
-  excluded_sections?: Array<Record<string, unknown>>
-  subscription_agreement?: {
-    excluded?: boolean
-    start_page?: number
-    end_page?: number
-    excluded_pages_count?: number
-    supplied_via?: string
-  }
-  subscription_agreement_skipped?: boolean
-  subscription_agreement_start_page?: number
-  subscription_agreement_end_page?: number
 }
 
 export interface ExtractedField {
