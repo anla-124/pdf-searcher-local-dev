@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Analyze cosine similarity distribution between two documents
  * This helps determine the optimal threshold for filtering paraphrases
@@ -46,12 +47,13 @@ async function fetchDocumentChunks(documentId: string): Promise<Chunk[]> {
         continue
       }
 
-      const charCount = row.character_count ?? (row.chunk_text ? countCharacters(row.chunk_text) : 0)
+      const chunkText = String(row.chunk_text || '')
+      const charCount = (row.character_count as number) ?? (chunkText ? countCharacters(chunkText) : 0)
 
       chunks.push({
-        id: `${documentId}_chunk_${row.chunk_index}`,
-        index: row.chunk_index,
-        text: row.chunk_text || '',
+        id: `${documentId}_chunk_${Number(row.chunk_index)}`,
+        index: Number(row.chunk_index),
+        text: chunkText,
         characterCount: charCount,
         embedding: embedding as number[]
       })
@@ -137,6 +139,7 @@ async function analyzeDocumentPair(docIdA: string, docIdB: string) {
 
   for (let i = 0; i < Math.min(20, allMatches.length); i++) {
     const match = allMatches[i]
+    if (!match) continue
     console.log()
     console.log(`Match #${i + 1}: Score = ${match.similarity.toFixed(4)}`)
     console.log(`Chunk A[${match.chunkAIndex}] (${match.chunkAChars} chars):`)
@@ -157,6 +160,7 @@ async function analyzeDocumentPair(docIdA: string, docIdB: string) {
 
   for (let i = 0; i < Math.min(10, borderline.length); i++) {
     const match = borderline[i]
+    if (!match) continue
     console.log()
     console.log(`Score = ${match.similarity.toFixed(4)}`)
     console.log(`Chunk A[${match.chunkAIndex}]:`)

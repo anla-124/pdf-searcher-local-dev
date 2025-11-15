@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Test how different thresholds affect the sourceScore
  * This helps find the optimal threshold to filter out boilerplate matches
@@ -63,12 +64,13 @@ async function fetchDocumentChunks(documentId: string): Promise<Chunk[]> {
         continue
       }
 
-      const charCount = row.character_count ?? (row.chunk_text ? countCharacters(row.chunk_text) : 0)
+      const chunkText = String(row.chunk_text || '')
+      const charCount = (row.character_count as number) ?? (chunkText ? countCharacters(chunkText) : 0)
 
       chunks.push({
-        id: `${documentId}_chunk_${row.chunk_index}`,
-        index: row.chunk_index,
-        text: row.chunk_text || '',
+        id: `${documentId}_chunk_${Number(row.chunk_index)}`,
+        index: Number(row.chunk_index),
+        text: chunkText,
         characterCount: charCount,
         embedding: embedding as number[]
       })
