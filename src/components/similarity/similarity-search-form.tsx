@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SearchableMultiSelect } from '@/components/ui/searchable-multi-select'
 import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
-import { Search, Loader2, RotateCcw, X, Building, Users, Briefcase, Globe } from 'lucide-react'
+import { Search, Loader2, RotateCcw, X, Scale, UserCircle, ClipboardList, Globe } from 'lucide-react'
 import { SimilarityResultsV2 } from './similarity-results-v2'
 import {
   LAW_FIRM_OPTIONS,
@@ -283,7 +283,7 @@ export function SimilaritySearchForm({ documentId, sourceDocument }: SimilarityS
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               <div className="space-y-1">
                 <Label className="flex items-center gap-1 text-xs">
-                  <Building className="h-3 w-3" />
+                  <Scale className="h-3 w-3" />
                   Law Firm
                 </Label>
                 <SearchableMultiSelect
@@ -303,7 +303,7 @@ export function SimilaritySearchForm({ documentId, sourceDocument }: SimilarityS
 
               <div className="space-y-1">
                 <Label className="flex items-center gap-1 text-xs">
-                  <Users className="h-3 w-3" />
+                  <UserCircle className="h-3 w-3" />
                   Fund Manager
                 </Label>
                 <SearchableMultiSelect
@@ -323,7 +323,7 @@ export function SimilaritySearchForm({ documentId, sourceDocument }: SimilarityS
 
               <div className="space-y-1">
                 <Label className="flex items-center gap-1 text-xs">
-                  <Briefcase className="h-3 w-3" />
+                  <ClipboardList className="h-3 w-3" />
                   Fund Admin
                 </Label>
                 <SearchableMultiSelect

@@ -66,10 +66,10 @@ export function MobileNav() {
           {/* Logo */}
           <div className="flex h-16 items-center px-6 border-b border-gray-200 dark:border-gray-700">
             <Link href="/dashboard" className="flex items-center space-x-2" onClick={() => setOpen(false)}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
                 PDF Searcher
               </span>
             </Link>

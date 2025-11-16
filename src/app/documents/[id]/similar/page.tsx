@@ -6,7 +6,7 @@ import { SimilaritySearchForm } from '@/components/similarity/similarity-search-
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { DatabaseDocument as AppDocument } from '@/types/external-apis'
-import { ArrowLeft, FileText, Sparkles, Target, Building, Users, Briefcase, Globe } from 'lucide-react'
+import { ArrowLeft, FileText, Sparkles, Target, Scale, UserCircle, ClipboardList, Globe } from 'lucide-react'
 import { formatUploadDate } from '@/lib/date-utils'
 import {
   LAW_FIRM_OPTIONS,
@@ -112,7 +112,7 @@ export default async function SimilarDocumentsPage({ params }: PageProps) {
 
                   <div className="flex flex-wrap items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
-                      <Building className="h-3 w-3 text-gray-400" />
+                      <Scale className="h-3 w-3 text-gray-400" />
                       {document.metadata?.law_firm ? (
                         <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata?.law_firm, LAW_FIRM_OPTIONS)}</span>
                       ) : (
@@ -120,7 +120,7 @@ export default async function SimilarDocumentsPage({ params }: PageProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3 text-gray-400" />
+                      <UserCircle className="h-3 w-3 text-gray-400" />
                       {document.metadata?.fund_manager ? (
                         <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata?.fund_manager, FUND_MANAGER_OPTIONS)}</span>
                       ) : (
@@ -128,7 +128,7 @@ export default async function SimilarDocumentsPage({ params }: PageProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Briefcase className="h-3 w-3 text-gray-400" />
+                      <ClipboardList className="h-3 w-3 text-gray-400" />
                       {document.metadata?.fund_admin ? (
                         <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata?.fund_admin, FUND_ADMIN_OPTIONS)}</span>
                       ) : (

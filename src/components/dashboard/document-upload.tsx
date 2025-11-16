@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Upload, FileText, Loader2, Building, Users, Briefcase, Globe, AlertTriangle, CheckCircle, Info } from 'lucide-react'
+import { Upload, FileText, Loader2, Scale, UserCircle, ClipboardList, Globe, AlertTriangle, CheckCircle, Info } from 'lucide-react'
 import { useFileValidation } from '@/lib/file-validation'
 import { 
   LAW_FIRM_OPTIONS, 
@@ -528,7 +528,7 @@ const canUpload = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div className="space-y-1">
                           <Label className="flex items-center gap-2 text-xs">
-                            <Building className="h-3 w-3" />
+                            <Scale className="h-3 w-3" />
                             Law Firm
                           </Label>
                           <SearchableSelect
@@ -548,7 +548,7 @@ const canUpload = () => {
 
                         <div className="space-y-1">
                           <Label className="flex items-center gap-2 text-xs">
-                            <Users className="h-3 w-3" />
+                            <UserCircle className="h-3 w-3" />
                             Fund Manager
                           </Label>
                           <SearchableSelect
@@ -568,7 +568,7 @@ const canUpload = () => {
 
                         <div className="space-y-1">
                           <Label className="flex items-center gap-2 text-xs">
-                            <Briefcase className="h-3 w-3" />
+                            <ClipboardList className="h-3 w-3" />
                             Fund Admin
                           </Label>
                           <SearchableSelect

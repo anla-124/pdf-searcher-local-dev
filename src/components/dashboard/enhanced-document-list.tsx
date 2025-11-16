@@ -31,9 +31,9 @@ import {
   X,
   Edit,
   Edit2,
-  Building,
-  Users,
-  Briefcase,
+  Scale,
+  UserCircle,
+  ClipboardList,
   Globe,
   ArrowUp,
   ArrowDown,
@@ -154,11 +154,11 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
   const { columnWidths, handleMouseDown } = useResizableColumns({
     checkbox: 48,
     name: 500,
-    metadata: 192,
+    metadata: 180,
     pages: 80,
-    lastModified: 176,
-    created: 176,
-    actions: 208
+    lastModified: 180,
+    created: 180,
+    actions: 180
   })
 
   // Pagination state
@@ -663,17 +663,29 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
     setSelectedDocuments(newSelected)
   }
 
+  // Check if all documents on current page are selected
+  const areAllCurrentPageSelected = () => {
+    return paginatedDocuments.every(doc => selectedDocuments.has(doc.id))
+  }
+
   const toggleAllDocuments = () => {
-    if (selectedDocuments.size === paginatedDocuments.length) {
-      if (sourceForSelectionId) {
-        setSelectedDocuments(new Set([sourceForSelectionId]))
-      } else {
-        setSelectedDocuments(new Set())
-      }
+    const newSelected = new Set(selectedDocuments)
+    const currentPageIds = paginatedDocuments.map(doc => doc.id)
+
+    if (areAllCurrentPageSelected()) {
+      // Deselect all documents on current page EXCEPT the source document
+      currentPageIds.forEach(id => {
+        if (id !== sourceForSelectionId) {
+          newSelected.delete(id)
+        }
+      })
+      // sourceForSelectionId is preserved - Selected Search mode stays active
     } else {
-      const allIds = new Set(paginatedDocuments.map(doc => doc.id))
-      setSelectedDocuments(allIds)
+      // Select all documents on current page (add to set)
+      currentPageIds.forEach(id => newSelected.add(id))
     }
+
+    setSelectedDocuments(newSelected)
   }
 
   const cancelSelection = () => {
@@ -1059,7 +1071,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
               {/* Law Firm Filter */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs font-medium">
-                  <Building className="h-3 w-3" />
+                  <Scale className="h-3 w-3" />
                   Law Firm
                 </Label>
                 <SearchableMultiSelect
@@ -1074,7 +1086,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
               {/* Fund Manager Filter */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs font-medium">
-                  <Users className="h-3 w-3" />
+                  <UserCircle className="h-3 w-3" />
                   Fund Manager
                 </Label>
                 <SearchableMultiSelect
@@ -1089,7 +1101,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
               {/* Fund Admin Filter */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs font-medium">
-                  <Briefcase className="h-3 w-3" />
+                  <ClipboardList className="h-3 w-3" />
                   Fund Admin
                 </Label>
                 <SearchableMultiSelect
@@ -1158,9 +1170,17 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                     <TableRow className="hover:bg-transparent bg-muted">
                       <TableHead className="h-10 py-2 rounded-tl-xl" style={{ width: `${columnWidths.checkbox}px` }}>
                         <Checkbox
-                          checked={selectedDocuments.size === paginatedDocuments.length && paginatedDocuments.length > 0}
+                          checked={
+                            paginatedDocuments.length === 0
+                              ? false
+                              : areAllCurrentPageSelected()
+                              ? true
+                              : paginatedDocuments.some(doc => selectedDocuments.has(doc.id))
+                              ? 'indeterminate'
+                              : false
+                          }
                           onCheckedChange={toggleAllDocuments}
-                          aria-label="Select all documents"
+                          aria-label="Select all documents on current page"
                         />
                       </TableHead>
                       <TableHead
@@ -1234,7 +1254,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                         />
                       </TableHead>
                       <TableHead
-                        className="cursor-pointer hover:bg-muted/50 h-10 py-2 relative group"
+                        className="cursor-pointer hover:bg-muted/50 h-10 py-2 border-r border-gray-300 dark:border-gray-700 relative group"
                         onClick={() => handleSort('created_at')}
                         style={{ width: `${columnWidths.created}px` }}
                       >
@@ -1328,7 +1348,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                           <TableCell>
                             <div className="flex flex-col gap-1.5 text-xs">
                               <div className="flex items-center gap-1.5">
-                                <Building className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                <Scale className="h-3 w-3 flex-shrink-0 text-gray-400" />
                                 {document.metadata?.law_firm ? (
                                   <span className="truncate text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata.law_firm, LAW_FIRM_OPTIONS)}</span>
                                 ) : (
@@ -1336,7 +1356,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                                 )}
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <Users className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                <UserCircle className="h-3 w-3 flex-shrink-0 text-gray-400" />
                                 {document.metadata?.fund_manager ? (
                                   <span className="truncate text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata.fund_manager, FUND_MANAGER_OPTIONS)}</span>
                                 ) : (
@@ -1344,7 +1364,7 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                                 )}
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <Briefcase className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                                <ClipboardList className="h-3 w-3 flex-shrink-0 text-gray-400" />
                                 {document.metadata?.fund_admin ? (
                                   <span className="truncate text-gray-600 dark:text-gray-300">{resolveOptionLabel(document.metadata.fund_admin, FUND_ADMIN_OPTIONS)}</span>
                                 ) : (

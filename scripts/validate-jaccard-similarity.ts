@@ -3,6 +3,8 @@
  * Demonstrates filtering behavior with user-provided examples
  */
 
+/* eslint-disable no-console */
+
 import { jaccardSimilarity } from '../src/lib/similarity/utils/jaccard-similarity'
 
 console.log('='.repeat(80))

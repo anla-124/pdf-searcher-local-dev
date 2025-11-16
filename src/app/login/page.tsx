@@ -16,7 +16,7 @@ export default function LoginPage() {
   }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-[#0a1329] dark:via-[#0d1b3a] dark:to-[#0a1329] transition-colors duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50 dark:bg-[#0a1329] transition-colors duration-300">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">

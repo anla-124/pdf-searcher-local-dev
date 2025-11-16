@@ -12,7 +12,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-slate-950 dark:to-slate-900">
+    <div className="flex h-screen bg-gray-50 dark:bg-slate-950">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <ErrorBoundary>
@@ -36,7 +36,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 className="h-8 w-8 object-contain"
               />
             </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            <span className="text-lg font-bold text-gray-900 dark:text-white">
               PDF AI
             </span>
           </div>

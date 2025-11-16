@@ -11,8 +11,9 @@ import {
   FileText,
   Users,
   Target,
-  Building,
-  Briefcase,
+  Scale,
+  UserCircle,
+  ClipboardList,
   Globe
 } from 'lucide-react'
 import { formatUploadDate } from '@/lib/date-utils'
@@ -140,7 +141,7 @@ export default async function SelectedSearchPage({ searchParams }: PageProps) {
 
                     <div className="flex flex-wrap items-center gap-4 text-xs">
                       <div className="flex items-center gap-1">
-                        <Building className="h-3 w-3 text-gray-400" />
+                        <Scale className="h-3 w-3 text-gray-400" />
                         {sourceDocument.metadata?.law_firm ? (
                           <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(sourceDocument.metadata?.law_firm, LAW_FIRM_OPTIONS)}</span>
                         ) : (
@@ -148,7 +149,7 @@ export default async function SelectedSearchPage({ searchParams }: PageProps) {
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3 text-gray-400" />
+                        <UserCircle className="h-3 w-3 text-gray-400" />
                         {sourceDocument.metadata?.fund_manager ? (
                           <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(sourceDocument.metadata?.fund_manager, FUND_MANAGER_OPTIONS)}</span>
                         ) : (
@@ -156,7 +157,7 @@ export default async function SelectedSearchPage({ searchParams }: PageProps) {
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Briefcase className="h-3 w-3 text-gray-400" />
+                        <ClipboardList className="h-3 w-3 text-gray-400" />
                         {sourceDocument.metadata?.fund_admin ? (
                           <span className="text-gray-600 dark:text-gray-300">{resolveOptionLabel(sourceDocument.metadata?.fund_admin, FUND_ADMIN_OPTIONS)}</span>
                         ) : (
