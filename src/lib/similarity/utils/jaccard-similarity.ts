@@ -19,7 +19,7 @@
  */
 
 /**
- * Tokenize text into normalized word tokens
+ * Extract normalized words from text
  *
  * Strategy:
  * - Lowercase normalization (case-insensitive matching)
@@ -27,17 +27,17 @@
  * - Keep ALL words including stop words (important for this use case)
  * - No stemming/lemmatization (want exact lexical matches)
  *
- * @param text - Input text to tokenize
- * @returns Array of normalized word tokens
+ * @param text - Input text to extract words from
+ * @returns Array of normalized words
  */
-export function tokenize(text: string): string[] {
+export function extractWords(text: string): string[] {
   if (!text) return []
 
   return text
     .toLowerCase()                      // Normalize case: "Investor" → "investor"
     .replace(/[^\w\s]/g, ' ')          // Remove punctuation: "Person." → "Person "
     .split(/\s+/)                       // Split on whitespace
-    .filter(token => token.length > 0)  // Remove empty strings
+    .filter(word => word.length > 0)    // Remove empty strings
 }
 
 /**
@@ -63,23 +63,23 @@ export function tokenize(text: string): string[] {
  * ```
  */
 export function jaccardSimilarity(textA: string, textB: string): number {
-  const tokensA = tokenize(textA)
-  const tokensB = tokenize(textB)
+  const wordsA = extractWords(textA)
+  const wordsB = extractWords(textB)
 
   // Handle empty inputs
-  if (tokensA.length === 0 && tokensB.length === 0) {
+  if (wordsA.length === 0 && wordsB.length === 0) {
     return 1.0  // Both empty = identical
   }
-  if (tokensA.length === 0 || tokensB.length === 0) {
+  if (wordsA.length === 0 || wordsB.length === 0) {
     return 0.0  // One empty = no similarity
   }
 
   // Convert to Sets for efficient intersection/union operations
-  const setA = new Set(tokensA)
-  const setB = new Set(tokensB)
+  const setA = new Set(wordsA)
+  const setB = new Set(wordsB)
 
   // Calculate intersection: words present in both
-  const intersection = new Set([...setA].filter(token => setB.has(token)))
+  const intersection = new Set([...setA].filter(word => setB.has(word)))
 
   // Calculate union: all unique words across both texts
   const union = new Set([...setA, ...setB])
