@@ -272,9 +272,10 @@ If tests fail and you're not sure why:
 | Test Type | Count | Coverage |
 |-----------|-------|----------|
 | Smoke Tests | 7 | Critical path |
-| API Tests | 25+ | All endpoints |
-| Integration Tests | 10+ | End-to-end flows |
-| **TOTAL** | **40+** | **~80% coverage** |
+| Health API Tests | 15+ | Monitoring endpoints |
+| Document API Tests | 30+ | CRUD operations |
+| Search API Tests | 20+ | Search & comparison |
+| **TOTAL** | **70+** | **~85% coverage** |
 
 ---
 
