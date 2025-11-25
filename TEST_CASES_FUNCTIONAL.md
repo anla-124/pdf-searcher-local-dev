@@ -2,14 +2,14 @@
 
 **Version:** 1.1
 **Date:** November 25, 2025
-**Total Test Cases:** 157
+**Total Test Cases:** 167
 
 ---
 
 ## TABLE OF CONTENTS
 1. [Document Upload](#1-document-upload-26-test-cases)
 2. [Document Processing Pipeline](#2-document-processing-pipeline-16-test-cases)
-3. [Document List & Management](#3-document-list--management-27-test-cases)
+3. [Document List & Management](#3-document-list--management-37-test-cases)
 4. [Similarity Search - General](#4-similarity-search---general-23-test-cases)
 5. [Similarity Search - Selected](#5-similarity-search---selected-12-test-cases)
 6. [Document Comparison (Draftable)](#6-document-comparison-draftable-10-test-cases)
@@ -718,7 +718,7 @@
 
 ---
 
-## 3. DOCUMENT LIST & MANAGEMENT (27 Test Cases)
+## 3. DOCUMENT LIST & MANAGEMENT (37 Test Cases)
 
 ### TC-DL-001: View Document List - Empty State
 **Priority:** P2
@@ -1152,6 +1152,166 @@
 - Status updates automatically (polling 25-35s)
 - Progress updates if available
 - Transitions to "completed" without page refresh
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-028: Processing Status - Happy Path
+**Priority:** P1
+**Note:** Endpoint used by UI polling to show real-time progress.
+
+**Test Steps:**
+1. Upload document and start processing
+2. Call GET /api/documents/[id]/processing-status
+
+**Expected Results:**
+- Returns 200 OK
+- Response includes: documentId, status, phase, progress, message
+- Phase maps correctly: upload/extraction/analysis/embeddings/indexing
+- Progress 0-100 based on document status
+- Default message if processing_status table has no rows
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-029: Processing Status - Unauthenticated
+**Priority:** P0
+**Test Steps:**
+1. Call GET /api/documents/[id]/processing-status without auth
+
+**Expected Results:**
+- Returns 401 Unauthorized
+- Error message: "Unauthorized"
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-030: Processing Status - Wrong User
+**Priority:** P0
+**Test Steps:**
+1. User A uploads document
+2. User B calls GET /api/documents/[user-a-doc-id]/processing-status
+
+**Expected Results:**
+- Returns 403 Forbidden
+- Error message: "Unauthorized"
+- RLS prevents access to other user's documents
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-031: Processing Status - Document Not Found
+**Priority:** P1
+**Test Steps:**
+1. Call GET /api/documents/[non-existent-id]/processing-status
+
+**Expected Results:**
+- Returns 404 Not Found
+- Error message: "Document not found"
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-032: Processing Status - No Processing Status Rows
+**Priority:** P2
+**Note:** Tests resilience when processing_status table has no entries.
+
+**Test Steps:**
+1. Get processing status for document with no processing_status rows
+
+**Expected Results:**
+- Returns 200 OK (not 500)
+- Uses default message based on document status
+- Progress defaults to 0
+- Handles missing data gracefully
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-033: Download - Unauthenticated
+**Priority:** P0
+**Test Steps:**
+1. Call GET /api/documents/[id]/download without auth
+
+**Expected Results:**
+- Returns 401 Unauthorized
+- Error message: "Unauthorized"
+- No file download
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-034: Download - Wrong User
+**Priority:** P0
+**Test Steps:**
+1. User A uploads document
+2. User B attempts to download User A's document
+
+**Expected Results:**
+- Returns 404 Not Found (RLS hides document)
+- Error message: "Document not found"
+- No file download
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-035: Download - Missing File Path
+**Priority:** P1
+**Test Steps:**
+1. Document exists in DB but file_path is null/missing
+
+**Expected Results:**
+- Returns 500 Internal Server Error
+- Error message: "Document file path is missing"
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-036: Download - Storage Error
+**Priority:** P2
+**Test Steps:**
+1. Document file_path points to non-existent storage file
+
+**Expected Results:**
+- Returns 500 Internal Server Error
+- Error message: "Failed to download file"
+- Error logged with documentId and filePath
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-037: Download - Success with Correct Headers
+**Priority:** P1
+**Test Steps:**
+1. Download completed document
+2. Verify response headers
+
+**Expected Results:**
+- Returns 200 OK
+- Content-Type: application/pdf
+- Content-Disposition: attachment; filename="[original-filename]"
+- Content-Length header present
+- PDF file downloads correctly
 
 **Actual Result:** _____
 **Status:** _____
