@@ -1,8 +1,8 @@
 # PDF SEARCHER - INTEGRATION TEST CASES
 
-**Version:** 1.1
+**Version:** 1.2
 **Date:** November 25, 2025
-**Total Test Cases:** 66
+**Total Test Cases:** 71
 
 ---
 
@@ -132,7 +132,7 @@
 
 ---
 
-## 2. DATABASE OPERATIONS (22 Test Cases)
+## 2. DATABASE OPERATIONS (27 Test Cases)
 
 ### 2.1 CRUD Operations (8 Test Cases)
 
@@ -196,9 +196,95 @@
 
 ### 2.3 Database Functions & Views (7 Test Cases)
 
-**TC-INT-FUNC-001:** claim_jobs_for_processing() Function
+**TC-INT-FUNC-001:** claim_jobs_for_processing() Function - Basic Job Claiming
 - **Priority:** P0
-- **Expected:** Atomic claiming, FOR UPDATE SKIP LOCKED works, stuck job recovery
+- **Test Steps:**
+  1. Create 5 jobs with status='queued'
+  2. Call claim_jobs_for_processing(limit_count=3, worker_id='worker-1')
+  3. Verify returned jobs
+  4. Check database state
+- **Expected Results:**
+  - Function returns exactly 3 jobs (respects limit_count)
+  - All 3 jobs have status='processing' in database
+  - All 3 jobs have metadata.worker_id='worker-1'
+  - All 3 jobs have metadata.claimed_at timestamp
+  - All 3 jobs have attempts incremented by 1
+  - started_at timestamp is set to NOW()
+  - metadata.recovered=false for fresh claims
+  - Remaining 2 jobs still have status='queued'
+
+**TC-INT-FUNC-001a:** claim_jobs_for_processing() - Concurrent Claiming (SKIP LOCKED)
+- **Priority:** P0
+- **Test Steps:**
+  1. Create 10 jobs with status='queued'
+  2. Simultaneously call function from 3 workers:
+     - Worker-A: claim_jobs_for_processing(5, 'worker-A')
+     - Worker-B: claim_jobs_for_processing(5, 'worker-B')
+     - Worker-C: claim_jobs_for_processing(5, 'worker-C')
+  3. Verify no overlapping claims
+- **Expected Results:**
+  - Total 10 jobs claimed across all workers (no duplicates)
+  - Each job claimed by exactly one worker
+  - No race conditions (FOR UPDATE SKIP LOCKED prevents duplicates)
+  - Each worker gets different jobs
+  - No errors or deadlocks
+  - Database consistency maintained
+
+**TC-INT-FUNC-001b:** claim_jobs_for_processing() - Stuck Job Recovery (>15 min)
+- **Priority:** P0
+- **Test Steps:**
+  1. Create job with status='processing', started_at=NOW() - 20 minutes
+  2. Set metadata.worker_id='worker-old'
+  3. Call claim_jobs_for_processing(1, 'worker-new')
+  4. Verify job is recovered
+- **Expected Results:**
+  - Stuck job (>15 min) is re-claimed
+  - Job status remains 'processing'
+  - metadata.worker_id updated to 'worker-new'
+  - metadata.previous_worker_id='worker-old'
+  - metadata.recovered=true
+  - metadata.claimed_at updated to NOW()
+  - attempts counter incremented
+  - Job is included in returned results
+
+**TC-INT-FUNC-001c:** claim_jobs_for_processing() - Priority Ordering
+- **Priority:** P1
+- **Test Steps:**
+  1. Create jobs with different priorities:
+     - Job A: priority=5, status='queued', created_at=T0
+     - Job B: priority=10, status='queued', created_at=T1
+     - Job C: priority=1, status='queued', created_at=T0-1h
+     - Job D: priority=10, status='processing', started_at=NOW()-20min (stuck)
+  2. Call claim_jobs_for_processing(10, 'worker-1')
+- **Expected Results:**
+  - Stuck jobs claimed FIRST (Job D first)
+  - Then queued jobs by priority DESC (Job B before Job A)
+  - Then by created_at ASC (older jobs first)
+  - Order: D, B, A, C
+
+**TC-INT-FUNC-001d:** claim_jobs_for_processing() - Max Attempts Respected
+- **Priority:** P1
+- **Test Steps:**
+  1. Create stuck job: status='processing', attempts=2, max_attempts=3, started_at=NOW()-20min
+  2. Create stuck job: status='processing', attempts=3, max_attempts=3, started_at=NOW()-20min
+  3. Call claim_jobs_for_processing(10, 'worker-1')
+- **Expected Results:**
+  - First job recovered (attempts < max_attempts)
+  - Second job NOT recovered (attempts >= max_attempts)
+  - Only first job returned
+  - Second job remains stuck (needs manual intervention)
+
+**TC-INT-FUNC-001e:** claim_jobs_for_processing() - Single Query Optimization
+- **Priority:** P1
+- **Test Steps:**
+  1. Create job with all document fields populated
+  2. Call claim_jobs_for_processing(1, 'worker-1')
+  3. Verify returned fields
+- **Expected Results:**
+  - Returns job fields: id, user_id, document_id, status, priority, processing_method, processing_config, result_summary, created_at, started_at, completed_at, attempts, error_message, metadata, max_attempts
+  - Returns document fields: doc_title, doc_filename, doc_file_path, doc_file_size, doc_user_id
+  - All data returned in single query (no N+1 queries needed)
+  - 60% query reduction vs separate queries
 
 **TC-INT-FUNC-002:** Stuck Jobs Monitoring View
 - **Priority:** P1
@@ -337,9 +423,9 @@
 | Integration Area | Test Cases | Critical |
 |------------------|------------|----------|
 | External Services | 25 | 15 |
-| Database Operations | 22 | 14 |
+| Database Operations | 27 | 19 |
 | API Endpoints | 19 | 10 |
-| **TOTAL** | **66** | **39** |
+| **TOTAL** | **71** | **44** |
 
 ---
 

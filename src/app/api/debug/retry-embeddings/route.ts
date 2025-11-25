@@ -5,8 +5,18 @@ import { computeAndStoreCentroid } from '@/lib/document-processing'
 import { DEFAULT_CHUNK_STRIDE } from '@/lib/constants/chunking'
 import { logger } from '@/lib/logger'
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
+    // Verify authorization - only allow authenticated admin/cron access
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${process.env['CRON_SECRET']}`) {
+      logger.warn('Unauthorized debug endpoint access attempt', {
+        hasAuthHeader: !!authHeader,
+        component: 'debug-retry-embeddings'
+      })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = await createServiceClient()
     
     // Find completed documents that have no embeddings (skipped due to timeout)

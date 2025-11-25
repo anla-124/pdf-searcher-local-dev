@@ -1,20 +1,20 @@
 # PDF SEARCHER - FUNCTIONAL TEST CASES
 
-**Version:** 1.1
+**Version:** 1.2
 **Date:** November 25, 2025
-**Total Test Cases:** 167
+**Total Test Cases:** 174
 
 ---
 
 ## TABLE OF CONTENTS
 1. [Document Upload](#1-document-upload-26-test-cases)
-2. [Document Processing Pipeline](#2-document-processing-pipeline-16-test-cases)
-3. [Document List & Management](#3-document-list--management-37-test-cases)
+2. [Document Processing Pipeline](#2-document-processing-pipeline-17-test-cases)
+3. [Document List & Management](#3-document-list--management-38-test-cases)
 4. [Similarity Search - General](#4-similarity-search---general-23-test-cases)
 5. [Similarity Search - Selected](#5-similarity-search---selected-12-test-cases)
 6. [Document Comparison (Draftable)](#6-document-comparison-draftable-10-test-cases)
 7. [Authentication & Authorization](#7-authentication--authorization-25-test-cases)
-8. [Health & Monitoring](#8-health--monitoring-18-test-cases)
+8. [Health & Monitoring](#8-health--monitoring-23-test-cases)
 
 ---
 
@@ -451,7 +451,7 @@
 
 ---
 
-## 2. DOCUMENT PROCESSING PIPELINE (16 Test Cases)
+## 2. DOCUMENT PROCESSING PIPELINE (17 Test Cases)
 
 ### TC-PP-001: End-to-End Processing - Small Document
 **Priority:** P0
@@ -519,34 +519,69 @@
 
 ---
 
-### TC-PP-005: Cancel Processing - Early Stage
+### TC-PP-005: Cancel Processing - Early Stage (Success Path)
 **Priority:** P1
 **Test Steps:**
 1. Upload document
 2. Click "Cancel" during OCR stage
+3. Verify cleanup completes successfully
 
-**Expected Results:**
+**Expected Results (Success Path):**
 - Processing stops immediately
-- Document status: "cancelled"
-- Partial data cleaned up (Supabase, Qdrant, Storage)
-- No orphaned records
+- API returns status: "deleted" (NOT "cancelled")
+- Response: "Processing cancelled and all data completely removed"
+- Document COMPLETELY deleted from everywhere:
+  - Removed from documents table
+  - All embeddings deleted (if any)
+  - Qdrant vectors removed (if any)
+  - Storage file deleted
+  - Processing status cleared
+  - All jobs cancelled
+- No orphaned records anywhere
+- cleanedUp: true in response
+
+**Expected Results (Failure Path - if cleanup fails):**
+- API returns status: "cancelled"
+- Response: "Processing cancelled, but cleanup may be incomplete"
+- Document marked as cancelled in database
+- cleanedUp: false in response
+- User can retry cancellation to clean up leftovers
 
 **Actual Result:** _____
 **Status:** _____
 
 ---
 
-### TC-PP-006: Cancel Processing - During Embedding Generation
+### TC-PP-006: Cancel Processing - During Embedding Generation (Success Path)
 **Priority:** P1
 **Test Steps:**
 1. Upload document
-2. Cancel during embedding generation (mid-stage)
+2. Wait for OCR completion and embedding generation to start
+3. Click "Cancel" during embedding generation (mid-stage)
+4. Verify cleanup completes successfully
 
-**Expected Results:**
-- Processing cancelled
-- Partial embeddings deleted
-- Qdrant cleanup executed
-- Storage file removed
+**Expected Results (Success Path):**
+- Processing cancelled immediately
+- API returns status: "deleted" (NOT "cancelled")
+- Response: "Processing cancelled and all data completely removed"
+- Document COMPLETELY deleted from everywhere:
+  - Removed from documents table
+  - ALL embeddings deleted (including partial embeddings)
+  - ALL Qdrant vectors removed (including partial vectors)
+  - Storage file deleted
+  - Extracted text deleted
+  - Processing status cleared
+  - All jobs cancelled
+- No orphaned records anywhere
+- cleanedUp: true in response
+
+**Expected Results (Failure Path - if cleanup fails):**
+- API returns status: "cancelled"
+- Response: "Processing cancelled, but cleanup may be incomplete"
+- Document marked as cancelled in database
+- Partial data may remain
+- cleanedUp: false in response
+- User can retry cancellation to clean up leftovers
 
 **Actual Result:** _____
 **Status:** _____
@@ -581,6 +616,26 @@
 - Status permanently "failed"
 - Error message displayed
 - Manual intervention required
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-PP-008a: Retry When Job Already Queued (409 Conflict)
+**Priority:** P1
+**Test Steps:**
+1. Upload document (status: queued, job created)
+2. Manually set document status to 'error' in database
+3. Attempt to retry via API while job still exists with status 'queued' or 'processing'
+
+**Expected Results:**
+- API returns 409 Conflict
+- Error message: "Document is already queued for processing"
+- Document status unchanged
+- No new job created
+- Prevents duplicate job creation
+- User should wait for existing job to complete or fail
 
 **Actual Result:** _____
 **Status:** _____
@@ -718,7 +773,7 @@
 
 ---
 
-## 3. DOCUMENT LIST & MANAGEMENT (37 Test Cases)
+## 3. DOCUMENT LIST & MANAGEMENT (38 Test Cases)
 
 ### TC-DL-001: View Document List - Empty State
 **Priority:** P2
@@ -970,6 +1025,28 @@
 - Filename in storage updated (file moved to new path)
 - Qdrant metadata updated with new filename
 - Change reflected immediately in list
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-DL-016a: Rename Document - Storage Move Failure
+**Priority:** P1
+**Test Steps:**
+1. Upload document successfully
+2. Simulate storage move failure (e.g., file locked, storage unavailable, permission denied)
+3. Attempt to rename document via PATCH API
+
+**Expected Results:**
+- API returns 500 Internal Server Error
+- Error message: "Failed to rename document in storage."
+- Database NOT updated (transaction rolled back or never committed)
+- Document retains old title and filename
+- File remains at old path in storage
+- No inconsistent state between database and storage
+- User sees error notification
+- Document still accessible with old name
 
 **Actual Result:** _____
 **Status:** _____
@@ -2461,7 +2538,7 @@
 
 ---
 
-## 8. HEALTH & MONITORING (18 Test Cases)
+## 8. HEALTH & MONITORING (23 Test Cases)
 
 ### TC-HM-001: Basic Health Check Endpoint
 **Priority:** P1
@@ -2745,19 +2822,115 @@
 
 ---
 
+### TC-HM-019: Debug Retry Embeddings - Unauthenticated
+**Priority:** P0
+**Test Steps:**
+1. Call `POST /api/debug/retry-embeddings` without Authorization header
+
+**Expected Results:**
+- Returns 401 Unauthorized
+- Error message: "Unauthorized"
+- No processing triggered
+- Warning logged: "Unauthorized debug endpoint access attempt"
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-HM-020: Debug Retry Embeddings - Invalid Token
+**Priority:** P0
+**Test Steps:**
+1. Call `POST /api/debug/retry-embeddings` with `Authorization: Bearer invalid-token`
+
+**Expected Results:**
+- Returns 401 Unauthorized
+- Error message: "Unauthorized"
+- No processing triggered
+- Warning logged with hasAuthHeader: true
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-HM-021: Debug Retry Embeddings - Success Path
+**Priority:** P1
+**Test Steps:**
+1. Create completed document with metadata.embeddings_skipped=true
+2. Call `POST /api/debug/retry-embeddings` with valid CRON_SECRET
+3. Monitor processing
+
+**Expected Results:**
+- Returns 200 OK
+- Response includes:
+  - message: "Embedding retry completed: 1 successful, 0 failed"
+  - totalProcessed: 1
+  - successful: 1
+  - failed: 0
+  - results array with document details
+- Document embeddings generated
+- Centroid computed and stored
+- metadata.embeddings_skipped removed
+- metadata.embeddings_retry_success=true
+- metadata.embeddings_retry_timestamp set
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-HM-022: Debug Retry Embeddings - No Documents to Fix
+**Priority:** P2
+**Test Steps:**
+1. Ensure no documents have embeddings_skipped or embeddings_error
+2. Call `POST /api/debug/retry-embeddings` with valid CRON_SECRET
+
+**Expected Results:**
+- Returns 200 OK
+- Response: "No documents found that need embedding retry"
+- totalDocuments count included
+- No processing attempted
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
+### TC-HM-023: Debug Retry Embeddings - Partial Failure
+**Priority:** P1
+**Test Steps:**
+1. Create 3 documents with embeddings_skipped=true
+2. Simulate failure for 1 document (e.g., invalid text)
+3. Call endpoint with valid CRON_SECRET
+
+**Expected Results:**
+- Returns 200 OK
+- Response: "Embedding retry completed: 2 successful, 1 failed"
+- successful: 2
+- failed: 1
+- results array shows status for each document
+- Failed document includes error message
+- Successful documents have retry metadata updated
+
+**Actual Result:** _____
+**Status:** _____
+
+---
+
 ## TEST CASE SUMMARY
 
 | Feature Area | Test Cases | P0 | P1 | P2 | P3 |
 |--------------|------------|----|----|----|----|
 | Document Upload | 26 | 2 | 13 | 10 | 1 |
-| Processing Pipeline | 16 | 2 | 9 | 5 | 0 |
-| Document List & Management | 27 | 1 | 13 | 11 | 2 |
+| Processing Pipeline | 17 | 2 | 10 | 5 | 0 |
+| Document List & Management | 38 | 1 | 24 | 11 | 2 |
 | Similarity Search - General | 23 | 1 | 11 | 10 | 1 |
 | Similarity Search - Selected | 12 | 0 | 6 | 5 | 1 |
 | Document Comparison | 10 | 0 | 3 | 6 | 1 |
 | Authentication & Authorization | 25 | 7 | 11 | 7 | 0 |
-| Health & Monitoring | 18 | 0 | 11 | 7 | 0 |
-| **TOTAL** | **157** | **13** | **77** | **61** | **6** |
+| Health & Monitoring | 23 | 2 | 14 | 7 | 0 |
+| **TOTAL** | **174** | **15** | **92** | **61** | **6** |
 
 ---
 
