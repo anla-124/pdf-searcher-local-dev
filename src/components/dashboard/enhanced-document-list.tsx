@@ -1783,9 +1783,8 @@ export function EnhancedDocumentList({ refreshTrigger = 0 }: DocumentListProps) 
                                   ) : (
                                     <Button
                                       size="sm"
-                                      variant="outline"
                                       onClick={() => handleSetSearchModeDocument(document)}
-                                      className="h-8 button-brighter"
+                                      className="h-8 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-400 hover:from-blue-600 hover:via-cyan-600 hover:to-teal-500 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200"
                                     >
                                       <Sparkles className="h-3 w-3 mr-1" />
                                       Semantic Search

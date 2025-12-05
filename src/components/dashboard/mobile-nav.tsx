@@ -60,7 +60,7 @@ export function MobileNav() {
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="pl-1 pr-0 w-64">
+      <SheetContent side="left" className="pl-1 pr-0 w-56">
         <div className="flex h-full w-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center px-6 border-b border-gray-200">

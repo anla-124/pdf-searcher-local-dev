@@ -1,7 +1,7 @@
 'use client'
 
 import { GoogleAuthButton, EmailPasswordLogin } from '@/components/auth/oauth-buttons'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 
@@ -18,50 +18,65 @@ export default function LoginPage() {
   }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50#0a1329] transition-colors duration-300">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-            <Image
-              src="/mark-logo-color.png"
-              alt="PDF Search logo"
-              width={1080}
-              height={1080}
-              className="h-16 w-16 object-contain"
-              priority
-            />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">PDF Search</h1>
-        </div>
+    <div
+      className="min-h-screen flex items-center justify-center transition-colors duration-300 relative"
+      style={{
+        backgroundImage: 'url(/logo/background-v3.svg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Logo at top left */}
+      <div className="absolute top-8 left-8">
+        <Image
+          src="/logo/short-logo-white.svg"
+          alt="PDF Search Logo"
+          width={120}
+          height={40}
+          className="h-10 w-auto"
+          priority
+        />
+      </div>
 
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-xl text-center text-gray-900">Welcome to PDF Search</CardTitle>
-            <CardDescription className="text-center text-gray-600">
-              {isLocalDev
-                ? 'Sign in with email or Google to get started'
-                : 'Sign in with your Google account to get started'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <div className="w-full max-w-md px-4">
+        <Card className="shadow-xl border-0 bg-white">
+          <CardContent className="pt-8 pb-8 px-8">
+            {/* Title */}
+            <h1 className="text-2xl font-bold text-gray-900 mb-8">Log in to PDF Search</h1>
+
             {isLocalDev && (
               <>
-                <EmailPasswordLogin />
-                <div className="relative">
+                {/* Email Input */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enter email address
+                  </label>
+                  <EmailPasswordLogin />
+                </div>
+
+                {/* Divider */}
+                <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-gray-300" />
+                    <span className="w-full border-t border-gray-200" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-gray-500">
-                      Or continue with
+                  <div className="relative flex justify-center text-sm">
+                    <span className="bg-white px-4 text-gray-500">
+                      OR
                     </span>
                   </div>
                 </div>
               </>
             )}
+
+            {/* Google Button */}
             <GoogleAuthButton />
+
+            {!isLocalDev && (
+              <p className="text-center text-sm text-gray-600 mt-6">
+                Sign in with your Google account to get started
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

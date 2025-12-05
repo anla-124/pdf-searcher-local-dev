@@ -42,14 +42,14 @@ export function Sidebar() {
 
   return (
     <div
-      className="flex h-full w-64 flex-col border-r border-gray-200 bg-white transition-colors duration-300"
+      className="flex h-full w-56 flex-col border-r border-gray-200 bg-white transition-colors duration-300"
     >
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-gray-200">
         <Link href="/dashboard" className="flex items-center space-x-3">
           <div className="flex h-10 w-10 items-center justify-center">
             <Image
-              src="/mark-logo-color.png"
+              src="/logo/mark-logo-default.svg"
               alt="Company Logo"
               width={1080}
               height={1080}

@@ -37,7 +37,7 @@ export function SimilaritySearchForm({ documentId, sourceDocument }: SimilarityS
   })
   const [sourceMinScore, setSourceMinScore] = useState(0.7)
   const [targetMinScore, setTargetMinScore] = useState(0.7)
-  const [topK, setTopK] = useState(15)
+  const [topK, setTopK] = useState(10)
   const abortControllerRef = useRef<AbortController | null>(null)
   const requestIdRef = useRef(0)
 

@@ -80,7 +80,7 @@ export function SearchResultsTable({
     name: 500,
     metadata: 200,
     pages: 80,
-    created: 180,
+    lastModified: 180,
     results: 180,
     actions: 280
   })
@@ -217,8 +217,8 @@ export function SearchResultsTable({
         case 'pages':
           comparison = (a.document.page_count ?? 0) - (b.document.page_count ?? 0)
           break
-        case 'created':
-          comparison = new Date(a.document.created_at).getTime() - new Date(b.document.created_at).getTime()
+        case 'updated_at':
+          comparison = new Date(a.document.updated_at).getTime() - new Date(b.document.updated_at).getTime()
           break
         case 'source_score':
           comparison = a.scores.sourceScore - b.scores.sourceScore
@@ -278,7 +278,7 @@ export function SearchResultsTable({
           <col style={{ width: `${columnWidths.name}px` }} />
           <col style={{ width: `${columnWidths.metadata}px` }} />
           <col style={{ width: `${columnWidths.pages}px` }} />
-          <col style={{ width: `${columnWidths.created}px` }} />
+          <col style={{ width: `${columnWidths.lastModified}px` }} />
           <col style={{ width: `${columnWidths.results}px` }} />
           <col style={{ width: `${columnWidths.actions}px` }} />
         </colgroup>
@@ -338,22 +338,22 @@ export function SearchResultsTable({
             </TableHead>
             <TableHead
               className="cursor-pointer hover:bg-muted/50 h-10 py-2 border-r border-gray-300 relative group"
-              onClick={() => handleSort('created')}
-              style={{ width: `${columnWidths.created}px` }}
+              onClick={() => handleSort('updated_at')}
+              style={{ width: `${columnWidths.lastModified}px` }}
             >
               <div className="flex items-center gap-2">
-                Created
-                {sortBy === 'created' ? (
+                Last Modified
+                {sortBy === 'updated_at' ? (
                   sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
                 ) : (
                   <ArrowUpDown className="h-4 w-4 opacity-50" />
                 )}
               </div>
               <div
-                className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gray-400:bg-gray-500"
+                className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gray-400"
                 onMouseDown={(e) => {
                   e.stopPropagation()
-                  handleMouseDown(e, 'created')
+                  handleMouseDown(e, 'lastModified')
                 }}
               />
             </TableHead>
@@ -451,10 +451,10 @@ export function SearchResultsTable({
                   </div>
                 </TableCell>
 
-                {/* Created Column */}
+                {/* Last Modified Column */}
                 <TableCell>
                   <div className="text-xs text-gray-600">
-                    {format(new Date(result.document.created_at), 'MMM dd, yyyy HH:mm')}
+                    {format(new Date(result.document.updated_at), 'MMM dd, yyyy HH:mm')}
                   </div>
                 </TableCell>
 

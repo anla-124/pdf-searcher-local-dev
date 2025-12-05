@@ -182,7 +182,7 @@ export function KeywordResults({
   }
 
   return (
-    <div className="space-y-4 keyword-results">
+    <div className="space-y-3 keyword-results">
       {/* Results Summary */}
       <div className="text-sm text-gray-600">
         Found {results.length} document{results.length !== 1 ? 's' : ''} matching &quot;{query}&quot;
@@ -212,18 +212,17 @@ export function KeywordResults({
 
         return (
           <Card key={doc.documentId} className="overflow-hidden">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                    <CardTitle className="text-lg truncate">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <CardTitle className="text-base truncate">
                       {doc.title}
                     </CardTitle>
                   </div>
-                  <p className="text-sm text-gray-500 truncate">{doc.filename}</p>
                 </div>
-                <Badge variant="secondary" className="flex-shrink-0">
+                <Badge variant="secondary" className="flex-shrink-0 text-xs">
                   {totalCount} match{totalCount !== 1 ? 'es' : ''}
                   {loadedCount < totalCount && (
                     <span className="ml-1 text-xs opacity-70">
@@ -236,16 +235,16 @@ export function KeywordResults({
 
             <CardContent className="pt-0">
               {/* Matches */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {visibleMatches.map((match, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
+                    className="p-2 bg-gray-50 rounded border border-gray-200 hover:border-blue-300 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-xs">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="text-xs py-0">
                             Page {match.pageNumber}
                           </Badge>
                           <span className="text-xs text-gray-500">
@@ -253,7 +252,7 @@ export function KeywordResults({
                           </span>
                         </div>
                         <div
-                          className="text-sm text-gray-700 leading-relaxed"
+                          className="text-sm text-gray-700 leading-snug"
                           dangerouslySetInnerHTML={{
                             __html: sanitizeExcerpt(match.excerpt)
                           }}
@@ -263,10 +262,10 @@ export function KeywordResults({
                         size="sm"
                         variant="ghost"
                         onClick={() => handleViewPage(doc.documentId, match.pageNumber)}
-                        className="flex-shrink-0"
+                        className="flex-shrink-0 h-7 w-7 p-0"
+                        aria-label="View page"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
+                        <Eye className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>

@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (trimmedQuery.length > 500) {
+    if (trimmedQuery.length > 2000) {
       return NextResponse.json(
-        { error: 'Search query is too long (max 500 characters)' },
+        { error: 'Search query is too long (max 2000 characters)' },
         { status: 400 }
       )
     }
