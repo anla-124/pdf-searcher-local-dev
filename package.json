@@ -33,7 +33,7 @@
   "type": "module",
   "dependencies": {
     "@draftable/compare-api": "^1.4.4",
-    "@google-cloud/documentai": "^9.4.0",
+    "@google-cloud/documentai": "^9.5.0",
     "@qdrant/js-client-rest": "^1.15.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-checkbox": "^1.3.3",

@@ -6,7 +6,6 @@ import unusedImports from 'eslint-plugin-unused-imports'
 import nextPlugin from '@next/eslint-plugin-next'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
-
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
@@ -14,6 +13,8 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
   recommendedConfig: js.configs.recommended,
 })
+
+const nextCoreWebVitals = nextPlugin.configs['core-web-vitals']
 
 export default [
   // Base configuration for all files
@@ -24,8 +25,6 @@ export default [
       'build/**',
       'dist/**',
       'coverage/**',
-      '*.config.js',
-      '*.config.ts',
       'public/**',
       'credentials/**',
       'test-*.ts',
@@ -33,14 +32,14 @@ export default [
     ],
   },
 
-  // Extend Next.js configuration
   ...compat.extends('next/core-web-vitals'),
 
-  // Explicitly add Next.js plugin so it's detected during build
+  // Next.js rules applied to all JS/TS files
   {
-    plugins: {
-      '@next/next': nextPlugin,
-    },
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    plugins: { '@next/next': nextPlugin },
+    rules: nextCoreWebVitals.rules,
+    settings: nextCoreWebVitals.settings ?? {},
   },
 
   // TypeScript files configuration
