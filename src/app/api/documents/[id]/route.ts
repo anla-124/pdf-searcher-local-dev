@@ -82,6 +82,31 @@ export async function DELETE(
         return NextResponse.json({ error: 'Failed to fetch document' }, { status: 500 })
       }
 
+      // Delete from database FIRST (CASCADE will handle related records)
+      // IMPORTANT: Use .select() to get the deleted row count and verify deletion succeeded
+      const { data: deletedRows, error: deleteError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id)
+        .select()
+
+      if (deleteError) {
+        logger.error('Documents API: database deletion error', deleteError)
+        return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 })
+      }
+
+      // Check if any rows were actually deleted (RLS might have filtered the document)
+      if (!deletedRows || deletedRows.length === 0) {
+        logger.warn('Documents API: delete returned success but 0 rows affected - likely RLS policy preventing deletion', {
+          documentId: id,
+          userId: userId
+        })
+        return NextResponse.json({
+          error: 'Document not found or you do not have permission to delete it'
+        }, { status: 403 })
+      }
+
+      // Only proceed with storage and vector cleanup if database deletion succeeded
       let vectorIds: string[] = []
       try {
         vectorIds = await getVectorIdsForDocument(id)
@@ -112,17 +137,6 @@ export async function DELETE(
       // Queue Qdrant cleanup with retry/backoff
       queueQdrantDeletion(id, vectorIds)
       logger.info('Documents API: queued Qdrant vector cleanup', { documentId: id })
-
-      // Delete from database (CASCADE will handle related records)
-      const { error: deleteError } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', id)
-
-      if (deleteError) {
-        logger.error('Documents API: database deletion error', deleteError)
-        return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 })
-      }
 
       // Log activity
       await activityLogger.logActivity({
