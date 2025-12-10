@@ -8,7 +8,6 @@ yarn-error.log*
 .env
 .env.local
 .env.development.local
-.env.test.local
 .env.production.local
 # Catch-all for stray environment configs (keep explicit templates tracked)
 *.env
@@ -53,9 +52,6 @@ pids
 # Coverage directory used by tools like istanbul
 coverage/
 
-# nyc test coverage
-.nyc_output
-
 # Dependency directories
 jspm_packages/
 
@@ -91,9 +87,6 @@ temp/
 
 # Debug output (Document AI raw responses)
 document-ai-debug/
-
-playwright-report/
-test-results/
 
 # Qdrant local storage (vector database data)
 qdrant_storage/

@@ -13,19 +13,7 @@
     "lint:strict": "eslint . --max-warnings 0",
     "cleanup": "npm run lint:fix",
     "type-check": "tsc --noEmit",
-    "postbuild": "node scripts/prepare-standalone.js",
-    "test": "playwright test",
-    "test:unit": "playwright test --project=unit",
-    "test:smoke": "playwright test --project=smoke",
-    "test:api": "playwright test --project=api",
-    "test:integration": "playwright test --project=integration",
-    "test:e2e": "playwright test --project=e2e-chromium",
-    "test:ci": "playwright test --project=unit --project=smoke",
-    "test:load": "playwright test tests/load --workers=1",
-    "test:scenarios": "tsx scripts/run-test-scenarios.ts",
-    "test:report": "playwright show-report test-results/html-report",
-    "test:ui": "playwright test --ui",
-    "test:debug": "playwright test --debug"
+    "postbuild": "node scripts/prepare-standalone.js"
   },
   "keywords": [],
   "author": "",
@@ -70,7 +58,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "@playwright/test": "^1.57.0",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",

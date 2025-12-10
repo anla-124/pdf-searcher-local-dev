@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: 'Keyword search is not available. Please run database migration.',
-            details: 'Run: npx tsx scripts/run-keyword-search-migration.ts'
+            details: 'The search_document_keywords_paginated() function is missing. Apply MASTER-DATABASE-SETUP.sql to your database.'
           },
           { status: 503 }
         )
