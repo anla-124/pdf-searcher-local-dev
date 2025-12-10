@@ -311,29 +311,3 @@ export async function stage0CandidateRetrieval(
   }
 }
 
-/**
- * Alternative: Query using BM25 + RRF (future enhancement)
- * Combines dense (centroid) and sparse (keyword) retrieval
- */
-export async function stage0HybridRetrieval(
-  sourceDocId: string,
-  options: {
-    topK?: number
-    filters?: Record<string, unknown>
-    alpha?: number  // Weight for dense vs sparse (default: 0.7 dense, 0.3 sparse)
-  } = {}
-): Promise<Stage0Result> {
-
-  const startTime = Date.now()
-  const { topK = 150 } = options
-
-  // TODO: Implement BM25 hybrid retrieval in the future
-  // For now, use dense vector search only
-  const denseResults = await stage0CandidateRetrieval(sourceDocId, { topK })
-
-  return {
-    candidateIds: denseResults.candidateIds,
-    scores: denseResults.scores,
-    timeMs: Date.now() - startTime
-  }
-}
