@@ -66,27 +66,8 @@ const createPinoLogger = () => {
     }
   }
 
-  // Pretty printing for development (no worker threads to avoid Next.js issues)
-  if (isDevelopment && !isTest) {
-    try {
-      return pino({
-        ...pinoConfig,
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'yyyy-mm-dd HH:MM:ss',
-            ignore: 'pid,hostname'
-          }
-        }
-      })
-    } catch (_error) {
-      // Fallback to basic pino if pretty printing fails
-      console.warn('Failed to initialize pino-pretty, falling back to basic logger:', _error)
-      return pino(pinoConfig)
-    }
-  }
-
+  // Use basic pino (JSON output) to avoid worker thread issues with Next.js
+  // Transport-based pino-pretty uses worker threads which conflict with Next.js
   return pino(pinoConfig)
 }
 
