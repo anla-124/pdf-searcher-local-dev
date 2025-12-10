@@ -1,8 +1,9 @@
 /**
  * Initialize Qdrant collection for document embeddings
- * Run with: npx tsx init-qdrant-collection.ts
+ * Run with: npx tsx scripts/init-qdrant-collection.ts
  */
 
+/* eslint-disable no-console */
 import { QdrantClient } from '@qdrant/js-client-rest'
 
 async function initQdrantCollection() {
