@@ -19,7 +19,6 @@ import {
   ArrowUpDown
 } from 'lucide-react'
 import { useMetadataOptions } from '@/hooks/use-metadata-options'
-import { format } from 'date-fns'
 import { clientLogger } from '@/lib/client-logger'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 
@@ -72,11 +71,10 @@ export function SearchResultsTable({
   // Resizable columns
   const { columnWidths, handleMouseDown } = useResizableColumns({
     name: 500,
-    metadata: 200,
-    pages: 80,
-    lastModified: 180,
-    results: 180,
-    actions: 280
+    metadata: 150,
+    pages: 70,
+    results: 140,
+    actions: 210
   })
 
   // Fetch metadata options from API
@@ -274,15 +272,14 @@ export function SearchResultsTable({
 
   return (
     <Card className="card-enhanced">
-      <Table>
-        <colgroup>
-          <col style={{ width: `${columnWidths.name}px` }} />
-          <col style={{ width: `${columnWidths.metadata}px` }} />
-          <col style={{ width: `${columnWidths.pages}px` }} />
-          <col style={{ width: `${columnWidths.lastModified}px` }} />
-          <col style={{ width: `${columnWidths.results}px` }} />
-          <col style={{ width: `${columnWidths.actions}px` }} />
-        </colgroup>
+        <Table style={{ tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: `${columnWidths.name}px` }} />
+            <col style={{ width: `${columnWidths.metadata}px` }} />
+            <col style={{ width: `${columnWidths.pages}px` }} />
+            <col style={{ width: `${columnWidths.results}px` }} />
+            <col style={{ width: `${columnWidths.actions}px` }} />
+          </colgroup>
         <TableHeader>
           <TableRow className="hover:bg-transparent bg-muted">
             <TableHead
@@ -338,27 +335,6 @@ export function SearchResultsTable({
               />
             </TableHead>
             <TableHead
-              className="cursor-pointer hover:bg-muted/50 h-10 py-2 border-r border-gray-300 relative group"
-              onClick={() => handleSort('updated_at')}
-              style={{ width: `${columnWidths.lastModified}px` }}
-            >
-              <div className="flex items-center gap-2">
-                Last Modified
-                {sortBy === 'updated_at' ? (
-                  sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 opacity-50" />
-                )}
-              </div>
-              <div
-                className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gray-400"
-                onMouseDown={(e) => {
-                  e.stopPropagation()
-                  handleMouseDown(e, 'lastModified')
-                }}
-              />
-            </TableHead>
-            <TableHead
               className="h-10 py-2 border-r border-gray-300 relative group"
               style={{ width: `${columnWidths.results}px` }}
             >
@@ -389,7 +365,7 @@ export function SearchResultsTable({
                     <div className="flex-1 min-w-0">
                       <button
                         onClick={() => viewPdf(result.document)}
-                        className="font-medium text-gray-900 hover:text-gray-700:text-gray-300 truncate text-left cursor-pointer"
+                        className="block w-full font-medium text-gray-900 hover:text-gray-700 dark:text-gray-300 truncate text-left cursor-pointer"
                       >
                         {result.document.title}
                       </button>
@@ -450,24 +426,17 @@ export function SearchResultsTable({
                   </div>
                 </TableCell>
 
-                {/* Last Modified Column */}
-                <TableCell>
-                  <div className="text-xs text-gray-600">
-                    {format(new Date(result.document.updated_at), 'MMM dd, yyyy HH:mm')}
-                  </div>
-                </TableCell>
-
                 {/* Results Column - Scores displayed line by line */}
                 <TableCell>
                   <div className="flex flex-col gap-1.5">
-                    <Badge className={`${getScoreBadgeColor(result.scores.sourceScore)} text-xs w-fit`}>
+                    <Badge className={`${getScoreBadgeColor(result.scores.sourceScore)} text-xs w-fit whitespace-nowrap`}>
                       Source: {Math.round(result.scores.sourceScore * 100)}%
                     </Badge>
-                    <Badge className={`${getScoreBadgeColor(result.scores.targetScore)} text-xs w-fit`}>
+                    <Badge className={`${getScoreBadgeColor(result.scores.targetScore)} text-xs w-fit whitespace-nowrap`}>
                       Target: {Math.round(result.scores.targetScore * 100)}%
                     </Badge>
                     {lengthRatio !== null && Number.isFinite(lengthRatio) && (
-                      <Badge variant="outline" className="text-xs w-fit">
+                      <Badge variant="outline" className="text-xs w-fit whitespace-nowrap">
                         Ratio: {(lengthRatio / 100).toFixed(2)}
                       </Badge>
                     )}
@@ -493,7 +462,7 @@ export function SearchResultsTable({
                       disabled={comparingDocs.has(result.document.id)}
                     >
                       <GitCompare className="h-4 w-4 mr-1 text-white" />
-                      {comparingDocs.has(result.document.id) ? 'Opening...' : 'Compare with Draftable'}
+                      {comparingDocs.has(result.document.id) ? 'Opening...' : 'Draftable'}
                     </Button>
                   </div>
                 </TableCell>
@@ -501,7 +470,7 @@ export function SearchResultsTable({
             )
           })}
         </TableBody>
-      </Table>
+        </Table>
     </Card>
   )
 }
